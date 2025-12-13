@@ -1,0 +1,146 @@
+﻿<!DOCTYPE html>
+
+<html lang="ru">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+
+    <title>Каталог</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="preload" href="../img/human1.png" as="image">
+    <link rel="preload" href="../img/human2.png" as="image">
+</head>
+
+<body id="top">
+
+  <header class="site-header" role="banner">
+
+    <div class="container">
+
+      <div class="brand"><a href="index.html"><img src="../img/logo.png" alt="Logo"></a></div>
+
+      <form class="header-search" action="" method="get" role="search" aria-label="Поиск">
+
+        <div class="input-group">
+
+          <input class="form-control header-input" name="q" type="search" placeholder="Поиск по разделам" aria-label="Поиск по разделам">
+
+          <button class="btn btn-light header-search-btn" type="submit" aria-label="Поиск">
+
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+
+          </button>
+
+        </div>
+
+      </form>
+    
+      <nav class="site-nav" role="navigation" aria-label="Основное меню">
+        <ul class="nav-menu">
+          <li><a href="index.html">Главная</a></li>
+          <li><a href="catalog.html">Каталог</a></li>
+          <li><a href="about.html">О нас</a></li>
+          <li><a href="contacts.html">Контакты</a></li>
+        </ul>
+      </nav>
+      
+      <div class="header-actions">
+
+        <a href="login.html" class="header-login btn btn-outline-primary btn-sm">Вход</a>
+
+        <a href="register.html" class="btn btn-primary btn-sm ms-1">Регистрация</a>
+
+      </div>
+
+    </div>
+
+  </header>
+
+
+
+
+    <div class="hero-slider container">
+    <div id="heroCarousel" class="carousel slide" data-bs-ride="carousel">
+      <div class="carousel-inner">
+        <div class="carousel-item active"><img src="../img/human1.png" class="d-block w-100" alt="human1"></div>
+        <div class="carousel-item"><img src="../img/human2.png" class="d-block w-100" alt="human2"></div>
+      </div>
+      <div class="carousel-indicators">
+        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Слайд"></button>
+        <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="1" aria-label="Слайд"></button>
+      </div>
+      <button class="carousel-control-prev" type="button" data-bs-target="#heroCarousel" data-bs-slide="prev"><span class="carousel-control-prev-icon" aria-hidden="true"></span><span class="visually-hidden">Назад</span></button>
+      <button class="carousel-control-next" type="button" data-bs-target="#heroCarousel" data-bs-slide="next"><span class="carousel-control-next-icon" aria-hidden="true"></span><span class="visually-hidden">Вперёд</span></button>
+      <div class="carousel-ticker" aria-hidden="false" role="region" aria-label="Бегущая строка">
+        <div class="ticker-inner" aria-hidden="false">
+          <div class="ticker-track">
+            <div class="ticker-marquee" aria-hidden="true">
+              <span>• Бесплатная доставка от 2000₽ | До 2000₽ всего 159₽</span>
+              <span>• Выгодные цены</span>
+              <span>• Новые поступления каждую неделю</span>
+              <span>• Классные футболки с новогодним котом и не только</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+    <div class="catalog-hero container">
+
+        <a href="clothing.html" class="cat-card" aria-label="Одежда - перейти к разделу Одежда">
+
+          <img src="../card-img/longsliv11.jpg" alt="Одежда" class="cat-image">
+
+          <div class="cat-label">Одежда</div>
+
+        </a>
+
+        <a href="footwear.html" class="cat-card" aria-label="Обувь - перейти к разделу Обувь">
+
+          <img src="../card-img/kedi11.jpg" alt="Обувь" class="cat-image">
+
+          <div class="cat-label">Обувь</div>
+
+        </a>
+
+        <a href="accessories.html" class="cat-card" aria-label="Аксессуары - перейти к разделу Аксессуары">
+
+          <img src="../card-img/sumka11.jpg" alt="Аксессуары" class="cat-image">
+
+          <div class="cat-label">Аксессуары</div>
+
+        </a>
+
+    </div>
+
+    <footer class="site-footer" role="contentinfo">
+
+        <div class="container">
+
+            <div class="footer-inner">
+
+                <h3><a href="privacy-policy.html">© Все права защищены</a></h3>
+
+                <a href="#top">Вернуться наверх</a>
+
+            </div>
+
+        </div>
+
+    </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="scripts.js"></script>
+
+</body>
+
+</html>
+
