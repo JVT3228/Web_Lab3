@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Корзина</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="cart-container">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+      <button class="back-btn btn btn-link" onclick="history.back()">← Назад</button>
+      <h1 style="margin:0">Корзина</h1>
+    </div>
+    <div id="cart-items"></div>
+    <div class="cart-summary">
+      <div class="total-amount">Итого: <span id="cart-total">0</span> ₽</div>
+      <button id="checkout-btn" class="btn">Оформить заказ</button>
+    </div>
+    <div id="guest-message" style="display:none;">Для оформления заказа необходимо <a href="/login.html">войти</a></div>
+  </div>
+  <script src="/cart.js"></script>
+  <script src="/scripts.js"></script>
+  <!-- Checkout modal -->
+  <div id="checkout-modal" class="modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
+    <div class="modal-dialog" style="background:#fff; padding:20px; border-radius:6px; max-width:480px; width:90%;">
+      <h3>Оформление заказа</h3>
+      <form id="checkout-form">
+        <div style="margin-bottom:10px;"><label>Имя получателя<br><input id="checkout-name" name="name" required class="form-control" style="width:100%;"></label></div>
+        <div style="margin-bottom:10px;"><label>Телефон<br><input id="checkout-phone" name="phone" required class="form-control" style="width:100%;"></label></div>
+        <div style="margin-bottom:10px;"><label>Адрес доставки (необязательно)<br><input id="checkout-address" name="address" class="form-control" style="width:100%;"></label></div>
+        <div style="text-align:right; margin-top:8px;">
+          <button type="button" id="checkout-cancel" class="btn">Отмена</button>
+          <button type="submit" id="checkout-submit" class="btn btn-primary">Отправить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

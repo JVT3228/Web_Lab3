@@ -13,8 +13,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <link rel="stylesheet" href="style.css">
-    <link rel="preload" href="../img/human1.png" as="image">
-    <link rel="preload" href="../img/human2.png" as="image">
+    <link rel="preload" href="http://localhost:5000/images/static/img/human1.png" as="image">
+    <link rel="preload" href="http://localhost:5000/images/static/img/human2.png" as="image">
 </head>
 
 <body id="top">
@@ -23,13 +23,13 @@
 
     <div class="container">
 
-      <div class="brand"><a href="index.html"><img src="../img/logo.png" alt="Logo"></a></div>
+      <div class="brand"><a href="index.html"><img src="http://localhost:5000/images/static/img/logo.png" alt="Logo"></a></div>
 
-      <form class="header-search" action="" method="get" role="search" aria-label="Поиск">
+      <form class="header-search" role="search" aria-label="Поиск" onsubmit="handleSearch(event)">
 
         <div class="input-group">
 
-          <input class="form-control header-input" name="q" type="search" placeholder="Поиск по разделам" aria-label="Поиск по разделам">
+          <input class="form-control header-input" id="search-input" name="q" type="search" placeholder="Поиск по каталогу" aria-label="Поиск по каталогу">
 
           <button class="btn btn-light header-search-btn" type="submit" aria-label="Поиск">
 
@@ -51,11 +51,15 @@
       </nav>
       
       <div class="header-actions">
-
+        <a href="cart.html" class="header-cart" aria-label="Корзина" title="Корзина">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6h15l-1.5 9h-11L6 6z" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="20" r="1.5" fill="#333"/><circle cx="18" cy="20" r="1.5" fill="#333"/></svg>
+          <span class="cart-count badge bg-danger" style="display:none">0</span>
+        </a>
         <a href="login.html" class="header-login btn btn-outline-primary btn-sm">Вход</a>
-
         <a href="register.html" class="btn btn-primary btn-sm ms-1">Регистрация</a>
-
+        <a href="profile.html" class="header-profile" aria-label="Профиль" title="Профиль" style="display:none">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="7" r="4" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
       </div>
 
     </div>
@@ -68,8 +72,8 @@
     <div class="hero-slider container">
     <div id="heroCarousel" class="carousel slide" data-bs-ride="carousel">
       <div class="carousel-inner">
-        <div class="carousel-item active"><img src="../img/human1.png" class="d-block w-100" alt="human1"></div>
-        <div class="carousel-item"><img src="../img/human2.png" class="d-block w-100" alt="human2"></div>
+        <div class="carousel-item active"><img src="http://localhost:5000/images/static/img/human1.png" class="d-block w-100" alt="human1"></div>
+        <div class="carousel-item"><img src="http://localhost:5000/images/static/img/human2.png" class="d-block w-100" alt="human2"></div>
       </div>
       <div class="carousel-indicators">
         <button type="button" data-bs-target="#heroCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Слайд"></button>
@@ -97,7 +101,7 @@
 
         <a href="clothing.html" class="cat-card" aria-label="Одежда - перейти к разделу Одежда">
 
-          <img src="../card-img/longsliv11.jpg" alt="Одежда" class="cat-image">
+          <img src="http://localhost:5000/images/static/card-img/longsliv11.jpg" alt="Одежда" class="cat-image">
 
           <div class="cat-label">Одежда</div>
 
@@ -105,7 +109,7 @@
 
         <a href="footwear.html" class="cat-card" aria-label="Обувь - перейти к разделу Обувь">
 
-          <img src="../card-img/kedi11.jpg" alt="Обувь" class="cat-image">
+          <img src="http://localhost:5000/images/static/card-img/kedi11.jpg" alt="Обувь" class="cat-image">
 
           <div class="cat-label">Обувь</div>
 
@@ -113,7 +117,7 @@
 
         <a href="accessories.html" class="cat-card" aria-label="Аксессуары - перейти к разделу Аксессуары">
 
-          <img src="../card-img/sumka11.jpg" alt="Аксессуары" class="cat-image">
+          <img src="http://localhost:5000/images/static/card-img/sumka11.jpg" alt="Аксессуары" class="cat-image">
 
           <div class="cat-label">Аксессуары</div>
 
@@ -138,7 +142,45 @@
     </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="components.js"></script>
   <script src="scripts.js"></script>
+  <script>
+      async function handleSearch(event) {
+          event.preventDefault();
+          const query = document.getElementById('search-input').value.trim();
+          if (!query) {
+              alert('Введите поисковый запрос');
+              return;
+          }
+          try {
+              const response = await fetch('http://localhost:5000/api/products/search', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ query })
+              });
+              if (!response.ok) throw new Error('Search failed');
+              const results = await response.json();
+              displaySearchResults(results);
+          } catch (error) {
+              console.error(error);
+              alert('Ошибка при поиске');
+          }
+      }
+      
+      function displaySearchResults(products) {
+          const heroSection = document.querySelector('.catalog-hero');
+          let html = '<h2>Результаты поиска</h2><div class="products-grid">';
+          if (products.length === 0) {
+              html += '<p>Товары не найдены</p>';
+          } else {
+              products.forEach(p => {
+                  html += renderProductCard(p, 'search').outerHTML;
+              });
+          }
+          html += '</div><button class="btn btn-secondary mt-3" onclick="location.reload()">Вернуться к каталогу</button>';
+          heroSection.innerHTML = html;
+      }
+  </script>
 
 </body>
 

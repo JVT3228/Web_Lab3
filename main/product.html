@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Товар — Каталог</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/style.css">
 </head>
 <body id="top">
 
 <header class="site-header" role="banner">
     <div class="container"> 
-        <div class="brand"><a href="index.html"><img src="../img/logo.png" alt="Logo"></a></div>
+        <div class="brand"><a href="index.html"><img src="http://localhost:5000/images/static/img/logo.png" alt="Logo"></a></div>
         
         <nav class="site-nav" role="navigation" aria-label="Основное меню">
             <ul class="nav-menu">
@@ -23,8 +23,15 @@
         </nav>
         
         <div class="header-actions">
+            <a href="cart.html" class="header-cart" aria-label="Корзина" title="Корзина">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6h15l-1.5 9h-11L6 6z" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="20" r="1.5" fill="#333"/><circle cx="18" cy="20" r="1.5" fill="#333"/></svg>
+            <span class="cart-count badge bg-danger" style="display:none">0</span>
+            </a>
             <a href="login.html" class="header-login btn btn-outline-primary btn-sm">Вход</a>
             <a href="register.html" class="btn btn-primary btn-sm ms-1">Регистрация</a>
+            <a href="profile.html" class="header-profile" aria-label="Профиль" title="Профиль" style="display:none">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="7" r="4" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
         </div>
     </div>
 </header>
@@ -48,26 +55,84 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="products.js"></script>
 <script src="components.js"></script>
+<script src="reviews.js"></script>
+<script src="cart.js"></script>
+<script src="scripts.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // Получаем параметры из URL
-        const params = getURLParams();
+    document.addEventListener('DOMContentLoaded', async () => {
+        const params = new URLSearchParams(window.location.search);
+        let productId = params.get('id');
         
-        if (!params.id || !params.category) {
+        // Извлекаем только цифру если ID формата "category-3"
+        if (productId && productId.includes('-')) {
+            productId = productId.split('-')[1];
+        }
+        
+        if (!productId) {
             document.querySelector('.page-content').innerHTML = '<p>Товар не найден.</p>';
             return;
         }
         
-        // Ищем товар в data
-        const product = findProduct(params.category, params.id);
-        
-        if (product) {
+        try {
+            const response = await fetch(`http://localhost:5000/api/products/${productId}`);
+            if (!response.ok) throw new Error('Product not found');
+            
+            const product = await response.json();
             document.title = `${product.name} — Каталог`;
-            renderProductPage(product);
-        } else {
-            document.querySelector('.page-content').innerHTML = '<p>Товар не найден.</p>';
+            
+            const images = product.images || [];
+            const carouselHTML = images.length ? `
+                <div id="productCarousel" class="carousel slide mb-4">
+                    <div class="carousel-inner">
+                        ${images.map((img, i) => `
+                            <div class="carousel-item ${i === 0 ? 'active' : ''}">
+                                <img src="${img}" class="d-block w-100 product-photo" alt="${product.name}">
+                            </div>
+                        `).join('')}
+                    </div>
+                    ${images.length > 1 ? `
+                        <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon"></span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#productCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon"></span>
+                        </button>
+                    ` : ''}
+                </div>
+            ` : '';
+            
+            const charHTML = product.characteristics ? `<ul>${Object.entries(product.characteristics).map(([k, v]) => `<li><strong>${k}:</strong> ${v}</li>`).join('')}</ul>` : '';
+            
+            document.querySelector('.page-content').innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        ${carouselHTML}
+                    </div>
+                    <div class="col-md-6">
+                        <h1>${product.name}</h1>
+                        <p class="short-desc">${product.shortDesc || ''}</p>
+                        ${charHTML}
+                        <h3 class="text-primary mb-3">${product.price} ₽</h3>
+                        <div class="mb-3">
+                            <button class="btn btn-primary btn-lg" onclick="addToCart(${product.id}, '${product.name.replace(/'/g, "\\'")}', ${product.price})">Купить</button>
+                            <button class="btn btn-link ms-3" data-bs-toggle="collapse" data-bs-target="#extraDetails" aria-expanded="false" aria-controls="extraDetails">Подробнее</button>
+                        </div>
+                        <div class="collapse mt-3" id="extraDetails"><div class="card card-body">${product.description || ''}</div></div>
+                        <div id="reviews-container" class="mt-4"></div>
+                    </div>
+                </div>
+            `;
+            
+            // initialize lightbox now that DOM is ready
+            if (typeof initProductLightbox === 'function') initProductLightbox();
+            const reviewsContainer = document.getElementById('reviews-container');
+            if (reviewsContainer) {
+                renderReviews(reviewsContainer, productId);
+            }
+        } catch (error) {
+            console.error(error);
+            document.querySelector('.page-content').innerHTML = '<p>Ошибка загрузки товара.</p>';
         }
     });
 </script>

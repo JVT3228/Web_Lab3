@@ -6,12 +6,13 @@
     <title>Магазин одежды и обуви — Befree</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="/main/img/logo.png">
 </head>
 
 <body id="top">
 <header class="site-header" role="banner">
     <div class="container">
-        <div class="brand"><a href="index.html"><img src="../img/logo.png" alt="Logo"></a></div>    
+        <div class="brand"><a href="index.html"><img src="http://localhost:5000/images/static/img/logo.png" alt="Logo"></a></div>    
 
         <nav class="site-nav" role="navigation" aria-label="Основное меню">
             <ul class="nav-menu">
@@ -23,8 +24,15 @@
         </nav>
 
         <div class="header-actions">
+            <a href="cart.html" class="header-cart" aria-label="Корзина" title="Корзина">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6h15l-1.5 9h-11L6 6z" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="20" r="1.5" fill="#333"/><circle cx="18" cy="20" r="1.5" fill="#333"/></svg>
+                <span class="cart-count badge bg-danger" style="display:none">0</span>
+            </a>
             <a href="login.html" class="header-login btn btn-outline-primary btn-sm">Вход</a>
             <a href="register.html" class="btn btn-primary btn-sm ms-1">Регистрация</a>
+            <a href="profile.html" class="header-profile" aria-label="Профиль" title="Профиль" style="display:none">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="7" r="4" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
         </div>
     </div>
 </header>
@@ -33,16 +41,16 @@
         <div id="heroCarouselIndex" class="carousel slide" data-bs-ride="carousel" data-bs-interval="5000">
             <div class="carousel-inner">
                 <div class="carousel-item active">
-                    <img src="../img/befree_cash_register_desktop.jpg" alt="Befree магазин">
+                    <img src="http://localhost:5000/images/static/img/befree_cash_register_desktop.jpg" alt="Befree магазин">
                 </div>
                 <div class="carousel-item"> 
-                    <img src="../img/befree_enter_desktop.jpg" alt="Befree магазин"> 
+                    <img src="http://localhost:5000/images/static/img/befree_enter_desktop.jpg" alt="Befree магазин"> 
                 </div>
                 <div class="carousel-item">
-                    <img src="../img/meme1.png" alt="Befree мода">
+                    <img src="http://localhost:5000/images/static/img/meme1.png" alt="Befree мода">
                 </div>
                 <div class="carousel-item">
-                    <img src="../img/meme2.png" alt="Befree мода">
+                    <img src="http://localhost:5000/images/static/img/meme2.png" alt="Befree мода">
                 </div>
             </div>
             <div class="carousel-indicators">
@@ -142,6 +150,7 @@
 </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="cart.js"></script>
   <script src="scripts.js"></script>
 
 </body>

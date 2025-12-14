@@ -3,7 +3,7 @@
 //     const headerHTML = `
 // <header class="site-header" role="banner">
 //     <div class="container"> 
-//         <div class="brand"><a href="index.html"><img src="../img/logo.png" alt="Logo"></a></div>
+//         <div class="brand"><a href="index.html"><img src="http://localhost:5000/images/static/img/logo.png" alt="Logo"></a></div>
         
 //         <nav class="site-nav" role="navigation" aria-label="Основное меню">
 //             <ul class="nav-menu">
@@ -44,21 +44,58 @@
 //     }
 // }
 
+// Add to cart function
+function addToCart(productId, productName, price) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        if (confirm('Для добавления в корзину нужно войти. Перейти на страницу входа?')) {
+            window.location.href = '/login.html';
+        }
+        return;
+    }
+    const qty = prompt('Введите количество:', '1');
+    if (!qty || parseInt(qty) <= 0) return;
+    fetch('http://localhost:5000/api/cart/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ product_id: productId, quantity: parseInt(qty) })
+    }).then(r => r.json()).then(d => {
+        alert('Товар добавлен в корзину');
+        if (window.updateCartCounter) updateCartCounter();
+    }).catch(e => { console.error(e); alert('Ошибка'); });
+}
+
 // 3. Рендеринг карточки товара
 function renderProductCard(product, category) {
     const card = document.createElement('article');
     card.className = 'product-card';
+    const productId = product.id;
+    
+    // Обработка картинок: если из JSON это массив, берём первую
+    let imageUrl = '';
+    if (typeof product.images === 'string') {
+        try {
+            const images = JSON.parse(product.images);
+            imageUrl = images[0] || '';
+        } catch (e) {
+            imageUrl = product.images;
+        }
+    } else if (Array.isArray(product.images)) {
+        imageUrl = product.images[0] || '';
+    }
+    imageUrl = imageUrl || product.cardImage || '';
+    
     card.innerHTML = `
-        <a href="product.html?id=${product.id}&category=${category}">
-            <img src="${product.cardImage}" class="product-photo" alt="${product.name}">
+        <a href="product.html?id=${productId}">
+            <img src="${imageUrl}" class="product-photo" alt="${product.name}">
         </a>
         <h4 class="product-name">
-            <a href="product.html?id=${product.id}&category=${category}">${product.name}</a>
+            <a href="product.html?id=${productId}">${product.name}</a>
         </h4>
         <div class="product-price">${product.price} ₽</div>
         <div class="card-actions">
-            <button class="btn btn-primary">Купить</button>
-            <a href="product.html?id=${product.id}&category=${category}" class="btn btn-outline-secondary ms-2">Подробнее</a>
+            <button class="btn btn-primary" onclick="addToCart(${productId}, '${product.name.replace(/'/g, "\\'")}', ${product.price})">Купить</button>
+            <a href="product.html?id=${productId}" class="btn btn-outline-secondary ms-2">Подробнее</a>
         </div>
     `;
     return card;
@@ -66,13 +103,25 @@ function renderProductCard(product, category) {
 
 // 4. Инициализация модального окна для карусели товара
 function initProductLightbox() {
-    document.querySelectorAll('.product-images .carousel').forEach(carousel => {
-        const id = carousel.id;
-        if (!id) return;
+    // Find carousels inside .product-images or anywhere inside page-content (covers product.html)
+    const selectors = Array.from(new Set(['.product-images .carousel', '.page-content .carousel']));
+    const carousels = [];
+    selectors.forEach(sel => document.querySelectorAll(sel).forEach(c => carousels.push(c)));
+    console.debug('initProductLightbox: found selectors', selectors, 'carouselsCount=', carousels.length);
+
+    carousels.forEach(carousel => {
+        if (!carousel) return;
+        // ensure carousel has an id
+        let id = carousel.id;
+        if (!id) {
+            id = 'carousel-' + Math.random().toString(36).slice(2, 9);
+            carousel.id = id;
+        }
         const modalId = id + '-modal';
         const modalCarouselId = id + '-modal-carousel';
-        
+
         const buildModal = () => {
+            console.debug('buildModal for', id);
             if (document.getElementById(modalId)) return;
             const slides = Array.from(carousel.querySelectorAll('.carousel-inner .carousel-item img'));
             const modal = document.createElement('div');
@@ -95,28 +144,130 @@ function initProductLightbox() {
                     </div>
                 </div>`;
             document.body.appendChild(modal);
+            // Удалять модальное окно и backdrop после скрытия, чтобы не оставались следы
+            try {
+                // слушаем событие скрытия модального окна
+                modal.addEventListener('hidden.bs.modal', function onHidden() {
+                    try {
+                        const inst = bootstrap.Modal.getInstance(modal);
+                        if (inst && typeof inst.dispose === 'function') inst.dispose();
+                    } catch (e) { /* ignore */ }
+                    // убираем сам элемент модального окна
+                    if (modal && modal.parentNode) modal.parentNode.removeChild(modal);
+                    // удаляем backdrop, если он остался
+                    const backdrop = document.querySelector('.modal-backdrop');
+                    if (backdrop && backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+                });
+            } catch (e) { console.warn('Attach hidden handler failed', e); }
             const closeBtn = modal.querySelector('.btn-close');
-            if (closeBtn) {
-                closeBtn.style.pointerEvents = 'auto';
-            }
+            if (closeBtn) closeBtn.style.pointerEvents = 'auto';
         };
-        
+
         buildModal();
-        carousel.querySelectorAll('.carousel-inner .carousel-item img').forEach((img, idx) => {
+
+        const imgs = carousel.querySelectorAll('.carousel-inner .carousel-item img');
+        imgs.forEach((img, idx) => {
             img.style.cursor = 'zoom-in';
             img.addEventListener('click', () => {
+                console.debug('lightbox click', {id, idx, src: img.src});
                 buildModal();
                 const modalEl = document.getElementById(modalId);
                 if (!modalEl) return;
-                const bsModal = new bootstrap.Modal(modalEl);
-                bsModal.show();
-                const modalCarouselEl = modalEl.querySelector('.carousel');
-                const inst = bootstrap.Carousel.getInstance(modalCarouselEl) || new bootstrap.Carousel(modalCarouselEl);
-                inst.to(idx);
+                try {
+                    const bsModal = new bootstrap.Modal(modalEl);
+                    bsModal.show();
+                    // guard: ensure modal element will be removed/ disposed when closed
+                    if (!modalEl._cleanupAttached) {
+                        modalEl.addEventListener('hidden.bs.modal', () => {
+                            try { bsModal.dispose(); } catch (e) { /* ignore */ }
+                            try { modalEl.remove(); } catch (e) { /* ignore */ }
+                            const bd = document.querySelector('.modal-backdrop');
+                            if (bd) bd.remove();
+                        });
+                        modalEl._cleanupAttached = true;
+                    }
+                    setTimeout(() => {
+                        try {
+                            const modalCarouselEl = modalEl.querySelector('#' + modalCarouselId);
+                            const inst = bootstrap.Carousel.getInstance(modalCarouselEl) || new bootstrap.Carousel(modalCarouselEl);
+                            inst.to(idx);
+                        } catch (err) {
+                            console.warn('Carousel init failed in modal:', err);
+                        }
+                    }, 60);
+                } catch (err) {
+                    console.warn('Bootstrap modal failed, falling back to fallback gallery:', err);
+                    showFallbackGallery(Array.from(carousel.querySelectorAll('.carousel-inner .carousel-item img')).map(i=>i.src), idx);
+                }
             });
         });
     });
+
+        // Also attach to single product-photo images (for pages where carousel not used)
+        document.querySelectorAll('.product-photo').forEach((img)=>{
+            if (img.dataset.lightboxAttached) return;
+            img.dataset.lightboxAttached = '1';
+            img.style.cursor = 'zoom-in';
+            img.addEventListener('click', ()=>{
+                const src = img.src;
+                try {
+                        const anyModal = document.querySelector('.modal');
+                        if (anyModal && typeof bootstrap !== 'undefined'){
+                            const bsModal = new bootstrap.Modal(anyModal);
+                            bsModal.show();
+                            // ensure cleanup for this modal as well
+                            if (!anyModal._cleanupAttached) {
+                                anyModal.addEventListener('hidden.bs.modal', ()=>{
+                                    try { bsModal.dispose(); } catch(e){}
+                                    try { anyModal.remove(); } catch(e){}
+                                    const bd = document.querySelector('.modal-backdrop'); if (bd) bd.remove();
+                                });
+                                anyModal._cleanupAttached = true;
+                            }
+                            const imgs = Array.from(anyModal.querySelectorAll('.carousel-inner .carousel-item img'));
+                            const idx = imgs.findIndex(i=>i.src===src);
+                            if (idx>=0){
+                                const modalCarouselEl = anyModal.querySelector('.carousel');
+                                const inst = bootstrap.Carousel.getInstance(modalCarouselEl) || new bootstrap.Carousel(modalCarouselEl);
+                                setTimeout(()=>inst.to(idx),50);
+                                return;
+                            }
+                        }
+                } catch(e){ console.warn(e); }
+                showFallbackGallery([src], 0);
+            });
+        });
 }
+
+    // Fallback gallery overlay (no Bootstrap required)
+    function showFallbackGallery(srcList, startIndex){
+        const existing = document.getElementById('fallback-lightbox');
+        if (existing) existing.remove();
+        const overlay = document.createElement('div');
+        overlay.id = 'fallback-lightbox';
+        overlay.style.position = 'fixed';
+        overlay.style.left = 0; overlay.style.top = 0; overlay.style.right = 0; overlay.style.bottom = 0;
+        overlay.style.background = 'rgba(0,0,0,0.95)';
+        overlay.style.display = 'flex';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.zIndex = 4000;
+        overlay.innerHTML = `
+            <button id="fb-close" style="position:absolute;right:12px;top:12px;z-index:4010;background:rgba(255,255,255,0.9);border:none;padding:8px;border-radius:6px;cursor:pointer">✕</button>
+            <button id="fb-prev" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);z-index:4010;background:transparent;border:none;color:white;font-size:32px;">‹</button>
+            <img id="fb-img" src="" style="max-width:95%;max-height:90%;object-fit:contain;border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,0.5)" />
+            <button id="fb-next" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);z-index:4010;background:transparent;border:none;color:white;font-size:32px;">›</button>
+        `;
+        document.body.appendChild(overlay);
+        const imgEl = overlay.querySelector('#fb-img');
+        let idx = startIndex || 0;
+        function update(){ imgEl.src = srcList[idx]; }
+        overlay.querySelector('#fb-close').addEventListener('click', ()=>overlay.remove());
+        overlay.querySelector('#fb-prev').addEventListener('click', ()=>{ idx = (idx-1+srcList.length)%srcList.length; update(); });
+        overlay.querySelector('#fb-next').addEventListener('click', ()=>{ idx = (idx+1)%srcList.length; update(); });
+        overlay.addEventListener('click', (e)=>{ if (e.target===overlay) overlay.remove(); });
+        update();
+    }
 
 // 5. Рендеринг страницы товара
 function renderProductPage(product) {
@@ -157,11 +308,12 @@ function renderProductPage(product) {
                         <button class="btn btn-primary ms-3">Оформить заказ</button>
                         <button class="btn btn-link ms-3" data-bs-toggle="collapse" data-bs-target="#extraDetails" aria-expanded="false" aria-controls="extraDetails">Подробнее</button>
                     </div>
-                    <div class="collapse product-extra-details mt-3" id="extraDetails">
-                        <div class="card card-body">
-                            <p>${product.description}</p>
+                        <div class="collapse product-extra-details mt-3" id="extraDetails">
+                            <div class="card card-body">
+                                <p>${product.description}</p>
+                            </div>
                         </div>
-                    </div>
+                        <div id="reviews-container" class="mt-4"></div>
                 </div>
             </div>
         </div>
@@ -176,6 +328,32 @@ function renderProductPage(product) {
     setTimeout(() => {
         initProductLightbox();
     }, 0);
+}
+
+// Загрузить товары по категории с API (для category pages)
+async function getProductsByCategory(category) {
+    try {
+        const response = await fetch(`http://localhost:5000/api/products/category/${category}`);
+        if (!response.ok) return [];
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+    } catch (error) {
+        console.error(`Error loading products for category ${category}:`, error);
+        return [];
+    }
+}
+
+// Получить все товары с API (для каталога)
+async function getAllProducts() {
+    try {
+        const response = await fetch('http://localhost:5000/api/products');
+        if (!response.ok) return [];
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+    } catch (error) {
+        console.error('Error loading all products:', error);
+        return [];
+    }
 }
 
 // 6. Функция для получения параметров из URL

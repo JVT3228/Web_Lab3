@@ -22,7 +22,7 @@
 
     <div class="container">
 
-        <div class="brand"><a href="index.html"><img src="../img/logo.png" alt="Logo"></a></div>
+        <div class="brand"><a href="index.html"><img src="http://localhost:5000/images/static/img/logo.png" alt="Logo"></a></div>
 
         <nav class="site-nav" role="navigation" aria-label="Основное меню">
             <ul class="nav-menu">
@@ -34,12 +34,15 @@
         </nav>
 
         <div class="header-actions">
-
-
+            <a href="cart.html" class="header-cart" aria-label="Корзина" title="Корзина">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6h15l-1.5 9h-11L6 6z" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="20" r="1.5" fill="#333"/><circle cx="18" cy="20" r="1.5" fill="#333"/></svg>
+                <span class="cart-count badge bg-danger" style="display:none">0</span>
+            </a>
             <a href="login.html" class="header-login btn btn-outline-primary btn-sm">Вход</a>
-
             <a href="register.html" class="btn btn-primary btn-sm ms-1">Регистрация</a>
-
+            <a href="profile.html" class="header-profile" aria-label="Профиль" title="Профиль" style="display:none">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="7" r="4" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
         </div>
 
     </div>
@@ -70,7 +73,7 @@
 
                 <div class="mb-3 row">
                     <label for="phone" class="col-sm-3 col-form-label text-end">Телефон</label>
-                    <div class="col-sm-9"><input id="phone" name="phone" type="tel" class="form-control" placeholder="Телефон" required pattern="[+0-9\- ()]{7,}" oninvalid="this.setCustomValidity('Введите корректный номер телефона')" oninput="this.setCustomValidity('')"></div>
+                    <div class="col-sm-9"><input id="phone" name="phone" type="tel" class="form-control" placeholder="Телефон" oninvalid="this.setCustomValidity('Введите корректный номер телефона')" oninput="this.setCustomValidity('')"></div>
                 </div>
                 <div class="mb-3 row">
                     <label for="email" class="col-sm-3 col-form-label text-end">Email</label>
@@ -106,6 +109,70 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="scripts.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', ()=>{
+    const form = document.querySelector('form.contacts-form');
+    if (!form) return;
+    function cleanPhone(input){
+        const cleaned = (input||'').replace(/\D/g,'');
+        if (cleaned.length === 11 && cleaned.startsWith('7')) return cleaned;
+        if (cleaned.length === 10) return '7' + cleaned;
+        return null;
+    }
+
+    form.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const email = document.getElementById('email')?.value.trim();
+        const phoneRaw = document.getElementById('phone')?.value.trim();
+        const password = document.getElementById('password')?.value;
+        const phoneClean = cleanPhone(phoneRaw);
+        const login = email || phoneRaw;
+        if (!login || !password){ alert('Заполните поля'); return; }
+        if (phoneRaw && !phoneClean && !email){ alert('Введите корректный телефон в формате российского номера'); return; }
+
+        try{
+            const res = await fetch('http://localhost:5000/api/auth/login', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ login, password })
+            });
+            const data = await res.json();
+            if (!res.ok){ alert(data.error || 'Ошибка входа'); return; }
+
+            // Save session
+            localStorage.setItem('token', data.token);
+            if (data.user){
+                localStorage.setItem('user_id', data.user.id);
+                if (data.user.username) localStorage.setItem('username', data.user.username);
+                if (data.user.email) localStorage.setItem('email', data.user.email);
+                if (data.user.phone) localStorage.setItem('phone', data.user.phone);
+            }
+
+            // Merge cart (if guest session exists)
+            let sessionId = localStorage.getItem('session_id');
+            if (sessionId){
+                try{
+                    await fetch('http://localhost:5000/api/cart/merge', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type':'application/json',
+                            'Authorization': 'Bearer ' + data.token
+                        },
+                        body: JSON.stringify({ session_id: sessionId })
+                    });
+                }catch(err){ console.warn('Cart merge failed', err); }
+            }
+
+            // Redirect to home
+            window.location.href = '/';
+
+        }catch(err){
+            console.error(err);
+            alert('Ошибка подключения к серверу');
+        }
+    });
+});
+</script>
 
 </html>
 

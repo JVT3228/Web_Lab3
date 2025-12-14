@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Детали заказа</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="container">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+      <button class="back-btn btn btn-link" onclick="history.back()">← Назад</button>
+      <h1 style="margin:0">Детали заказа</h1>
+    </div>
+    <div id="order-details">Загрузка...</div>
+  </div>
+  <script>
+    function getQueryParam(name){
+      const params = new URLSearchParams(window.location.search);
+      return params.get(name);
+    }
+    document.addEventListener('DOMContentLoaded', async ()=>{
+      const id = getQueryParam('id');
+      const token = localStorage.getItem('token');
+      if (!id){ document.getElementById('order-details').textContent = 'Не указан id заказа'; return; }
+      try{
+        const res = await fetch('http://localhost:5000/api/orders/' + encodeURIComponent(id), { headers: {'Authorization': 'Bearer ' + token} });
+        if (!res.ok){ const err = await res.json(); document.getElementById('order-details').textContent = err.error || 'Ошибка'; return; }
+        const o = await res.json();
+        const wrap = document.getElementById('order-details');
+        const created = o.created_at || '';
+        wrap.innerHTML = `
+          <div class="order-card">
+            <div class="order-meta">
+              <div><strong>Номер:</strong> ${o.order_number || o.id}</div>
+              <div><strong>Статус:</strong> <span class="order-status">${o.status}</span></div>
+              <div><strong>Создан:</strong> ${created}</div>
+            </div>
+            <div class="order-summary">
+              <div><strong>Итого:</strong> ${o.total_amount} ₽</div>
+              <div><strong>Имя:</strong> ${o.customer_name || ''}</div>
+              <div><strong>Телефон:</strong> ${o.customer_phone || ''}</div>
+              <div><strong>Адрес:</strong> ${o.shipping_address || ''}</div>
+            </div>
+            <h3>Товары</h3>
+            <div class="order-items">
+              ${ (o.items && o.items.length) ? '<ul>' + o.items.map(it=>`<li class="order-line"><div class="ol-left">${it.product_name}</div><div class="ol-right">${it.quantity} × ${it.product_price} ₽ = ${it.subtotal} ₽</div></li>`).join('') + '</ul>' : '<p>Нет позиций</p>' }
+            </div>
+          </div>
+        `;
+      }catch(e){ document.getElementById('order-details').textContent = 'Ошибка соединения'; }
+    })
+  </script>
+</body>
+</html>

@@ -1,5 +1,3 @@
-// site-wide scripts
-
 // In-page search: find and highlight matches within site-main
 (function(){
   function escapeRegExp(text){
@@ -136,3 +134,303 @@
 
   document.addEventListener('DOMContentLoaded', ()=>initAllTickers());
 })();
+
+// Cart counter helper: обновляет/создаёт элемент с классом .cart-count в header
+async function updateCartCounter(){
+  try{
+    const token = localStorage.getItem('token');
+    const sessionId = localStorage.getItem('session_id');
+    let url = 'http://localhost:5000/api/cart/total';
+    if (!token && sessionId) url += `?session_id=${encodeURIComponent(sessionId)}`;
+    const headers = token ? {'Authorization': 'Bearer ' + token} : {};
+    const res = await fetch(url, { headers });
+    if (!res.ok) return;
+    const data = await res.json();
+    const totalItems = data.total_items || Math.round((data.total || 0) / 1); // fallback
+
+    // find or create counter element (placed inside .header-cart)
+    let el = document.querySelector('.header-actions .header-cart .cart-count') || document.querySelector('.header-actions .cart-count');
+    if (!el){
+      const headerActions = document.querySelector('.header-actions');
+      if (!headerActions) return;
+      el = document.createElement('span');
+      el.className = 'cart-count badge bg-danger ms-2';
+      el.style.display = 'none';
+      // prefer placing inside header-cart
+      const cartLink = headerActions.querySelector('.header-cart');
+      if (cartLink) cartLink.appendChild(el); else headerActions.appendChild(el);
+    }
+    if (totalItems && totalItems > 0){
+      el.textContent = totalItems;
+      el.style.display = 'inline-block';
+    } else {
+      el.style.display = 'none';
+    }
+
+    // removed header total display per UX request
+  }catch(err){ console.warn('updateCartCounter error', err); }
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  updateCartCounter();
+  
+  // Update auth buttons based on token
+  const token = localStorage.getItem('token');
+  const headerLogin = document.querySelector('.header-login');
+  const headerProfile = document.querySelector('.header-profile');
+  const headerRegister = document.querySelector('a[href="register.html"]');
+  const headerCart = document.querySelector('.header-cart');
+  
+  if (token){
+    if (headerLogin) headerLogin.style.display = 'none';
+    if (headerRegister) headerRegister.style.display = 'none';
+    if (headerProfile) headerProfile.style.display = 'inline-block';
+    if (headerCart) headerCart.style.display = 'inline-flex';
+  } else {
+    if (headerLogin) headerLogin.style.display = 'inline-block';
+    if (headerRegister) headerRegister.style.display = 'inline-block';
+    if (headerProfile) headerProfile.style.display = 'none';
+    if (headerCart) headerCart.style.display = 'inline-flex';
+  }
+});
+
+// Render/update header avatar (reads from localStorage.user_avatar)
+function renderHeaderAvatar(){
+  const headerProfile = document.querySelector('.header-profile');
+  if (!headerProfile) return;
+  const avatar = localStorage.getItem('user_avatar');
+  const svgFallback = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="7" r="4" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const online = localStorage.getItem('user_online') === '1';
+  headerProfile.style.display = 'inline-flex';
+  if (avatar){
+    headerProfile.innerHTML = `
+      <span class="header-avatar-wrapper" title="Профиль">
+        <img src="${avatar}" class="header-avatar" alt="Профиль">
+        ${online ? '<span class="avatar-status-dot"></span>' : ''}
+      </span>`;
+  } else {
+    headerProfile.innerHTML = `
+      <span class="header-avatar-wrapper" title="Профиль">${svgFallback}${online?'<span class="avatar-status-dot"></span>':''}</span>`;
+  }
+}
+window.renderHeaderAvatar = renderHeaderAvatar;
+
+// update avatar when changed in other tabs
+window.addEventListener('storage', (ev)=>{
+  if (ev.key === 'user_avatar') renderHeaderAvatar();
+});
+
+// call once on load (if DOMContentLoaded already fired earlier, ensure avatar is rendered)
+if (document.readyState === 'complete' || document.readyState === 'interactive') setTimeout(renderHeaderAvatar, 20);
+
+// --- Admin tools (frontend) ----------------------------------
+// Admin panel is hidden by default. To open: press Ctrl+Alt+A or click site logo 5 times quickly.
+(function(){
+  const ADMIN_KEY = 'is_admin'; // set localStorage.is_admin='1' for testing
+  let logoClicks = 0; let logoTimer = null;
+
+  function buildAdminUI(){
+    if (document.getElementById('admin-tools-root')) return;
+    const root = document.createElement('div');
+    root.id = 'admin-tools-root';
+    root.innerHTML = `
+      <button id="admin-toggle-btn" title="Admin tools" style="position:fixed;right:18px;bottom:18px;z-index:4000;display:none;background:#222;color:#fff;border-radius:50%;width:56px;height:56px;border:none;box-shadow:0 6px 24px rgba(0,0,0,0.3)">ADM</button>
+      <div class="modal fade" id="adminModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Admin panel</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+            <div class="modal-body">
+              <ul class="nav nav-tabs" id="adminTab" role="tablist">
+                <li class="nav-item" role="presentation"><button class="nav-link active" id="tab-add" data-bs-toggle="tab" data-bs-target="#pane-add" type="button">Add product</button></li>
+                <li class="nav-item" role="presentation"><button class="nav-link" id="tab-list" data-bs-toggle="tab" data-bs-target="#pane-list" type="button">Products</button></li>
+              </ul>
+              <div class="tab-content mt-3">
+                <div class="tab-pane fade show active" id="pane-add">
+                  <form id="admin-add-form">
+                    <div class="mb-2"><input class="form-control" id="adm-name" placeholder="Name" required></div>
+                    <div class="mb-2"><input class="form-control" id="adm-price" placeholder="Price" required type="number"></div>
+                    <div class="mb-2"><input class="form-control" id="adm-short" placeholder="Short description"></div>
+                    <div class="mb-2"><textarea class="form-control" id="adm-desc" placeholder="Full description"></textarea></div>
+                    <div class="mb-2"><input class="form-control" id="adm-images" placeholder="Image URLs (comma separated)"></div>
+                    <div class="mb-2"><input class="form-control" id="adm-category" placeholder="Category"></div>
+                    <div><button class="btn btn-primary" id="adm-add-btn" type="submit">Create</button></div>
+                  </form>
+                </div>
+                <div class="tab-pane fade" id="pane-list">
+                  <div id="adm-list" style="max-height:50vh;overflow:auto"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(root);
+
+    // wire button
+    const toggle = document.getElementById('admin-toggle-btn');
+    toggle.addEventListener('click', ()=>{
+      const modal = document.getElementById('adminModal');
+      const bs = new bootstrap.Modal(modal);
+      bs.show();
+      loadProductList();
+    });
+
+    // add form handler
+    document.addEventListener('submit', async (ev)=>{
+      if (ev.target && ev.target.id === 'admin-add-form'){
+        ev.preventDefault();
+        const name = document.getElementById('adm-name').value.trim();
+        const price = parseFloat(document.getElementById('adm-price').value) || 0;
+        const shortDesc = document.getElementById('adm-short').value.trim();
+        const desc = document.getElementById('adm-desc').value.trim();
+        const images = document.getElementById('adm-images').value.split(',').map(s=>s.trim()).filter(Boolean);
+        const category = document.getElementById('adm-category').value.trim();
+        const payload = { name, price, shortDesc, description: desc, images, category };
+        try{
+          const token = localStorage.getItem('token');
+          const res = await fetch('http://localhost:5000/api/products', { method: 'POST', headers: Object.assign({'Content-Type':'application/json'}, token?{Authorization:'Bearer '+token}:{}) , body: JSON.stringify(payload)});
+          const data = await res.json();
+          alert(data.message || 'Created');
+          loadProductList();
+        }catch(err){ console.error(err); alert('Ошибка создания'); }
+      }
+    });
+  }
+
+  async function loadProductList(){
+    const list = document.getElementById('adm-list'); if (!list) return;
+    try{
+      const res = await fetch('http://localhost:5000/api/products');
+      const data = await res.json();
+      list.innerHTML = data.map(p=>`<div style="padding:8px;border-bottom:1px solid #efefef"><strong>${p.name}</strong><div>${p.price} ₽</div></div>`).join('');
+    }catch(e){ list.innerHTML = '<p>Error loading</p>'; }
+  }
+
+  // show/hide admin toggle depending on localStorage or secret trigger
+  function revealAdmin(){
+    buildAdminUI();
+    const toggle = document.getElementById('admin-toggle-btn');
+    if (toggle) toggle.style.display = 'inline-block';
+  }
+
+  // keyboard shortcut
+  window.addEventListener('keydown', (ev)=>{
+    if (ev.ctrlKey && ev.altKey && ev.key.toLowerCase() === 'a'){
+      // only reveal if user flagged as admin in localStorage OR confirm
+      if (localStorage.getItem(ADMIN_KEY) === '1' || confirm('Открыть панель админа?')) revealAdmin();
+    }
+  });
+
+  // logo click 5 times
+  const brandLogo = document.querySelector('.site-header .brand');
+  if (brandLogo){
+    brandLogo.addEventListener('click', ()=>{
+      logoClicks++;
+      if (logoTimer) clearTimeout(logoTimer);
+      logoTimer = setTimeout(()=>{ logoClicks = 0; }, 1500);
+      if (logoClicks >= 5){
+        logoClicks = 0;
+        if (localStorage.getItem(ADMIN_KEY) === '1' || confirm('Открыть панель админа?')) revealAdmin();
+      }
+    });
+  }
+})();
+
+
+
+// Cart page script
+document.addEventListener('DOMContentLoaded', async ()=>{
+    const cartContainer = document.getElementById('cart-container');
+    const checkoutBtn = document.getElementById('checkout-btn');
+    if (!cartContainer) return; // not on cart page
+
+    class CartService { 
+    constructor() {
+        this.sessionId = localStorage.getItem('session_id');
+        this.token = localStorage.getItem('token');
+    }
+
+    async getCart() {
+        const url = this.token ? 'http://localhost:5000/api/cart' : `http://localhost:5000/api/cart?session_id=${this.sessionId}`;
+        const headers = this.token ? { 'Authorization': 'Bearer ' + this.token } : {};
+        const res = await fetch(url, { headers });
+        return await res.json();
+    }
+    async addToCart(productId, quantity = 1) {
+        const payload = { product_id: productId, quantity };
+        if (!this.token) payload.session_id = this.sessionId;
+        const headers = { 'Content-Type': 'application/json' };
+        if (this.token) headers['Authorization'] = 'Bearer ' + this.token;
+        const res = await fetch('http://localhost:5000/api/cart/add', { method: 'POST', headers, body: JSON.stringify(payload) });
+        return res.json();
+    }
+    async removeFromCart(itemId) {
+        await fetch(`http://localhost:5000/api/cart/remove/${itemId}`, { method: 'DELETE' });
+        return this.getCart();
+    }
+    async updateQuantity(itemId, quantity) {
+        const res = await fetch(`http://localhost:5000/api/cart/update/${itemId}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({quantity}) });
+        return res.json();
+    }
+    }
+
+    const service = new CartService();  
+    async function renderCart(){
+        const data = await service.getCart();
+        const items = data.items || [];
+        cartContainer.innerHTML = '';
+        let total = 0;
+        if (!items.length) {
+            cartContainer.innerHTML = '<p>Корзина пуста</p>';
+            checkoutBtn.disabled = true;
+            return;
+        }
+        checkoutBtn.disabled = false;
+        items.forEach(it=>{
+            total += it.subtotal || 0;
+            const div = document.createElement('div');
+            div.className = 'cart-item';
+            div.innerHTML = `
+                <img src="${it.image||''}" alt="" style="width:80px">
+                <div>
+                  <h4>${it.name}</h4>
+                  <div>${it.price} ₽</div>
+                  <div class="cart-item-quantity">
+                    <button class="btn-qty btn-minus" data-id="${it.id}" data-qty="${it.quantity}">-</button>
+                    <span class="quantity">${it.quantity}</span>
+                    <button class="btn-qty btn-plus" data-id="${it.id}" data-qty="${it.quantity}">+</button>
+                    <button data-id="${it.id}" class="remove">Удалить</button>
+                  </div>
+                </div>`;
+            cartContainer.appendChild(div);
+        });
+        const totalEl = document.getElementById('cart-total');
+        if (totalEl){
+            totalEl.textContent = 'Итого: ' + Math.round(total * 100) / 100 + ' ₽';
+        }
+    }
+
+    cartContainer.addEventListener('click', async (e)=>{ 
+        if (e.target.classList.contains('btn-qty')){
+            const itemId = e.target.dataset.id;
+            let qty = parseInt(e.target.dataset.qty);
+            if (e.target.classList.contains('btn-plus')){
+                qty += 1;
+            } else if (e.target.classList.contains('btn-minus')){
+                qty = Math.max(1, qty - 1);
+            }
+            await service.updateQuantity(itemId, qty);
+            await renderCart();
+            return;
+        }
+        if (e.target.classList.contains('remove')){
+            const itemId = e.target.dataset.id;
+            await service.removeFromCart(itemId);
+            await renderCart();
+            return;
+        }
+    });
+
+    await renderCart();
+});

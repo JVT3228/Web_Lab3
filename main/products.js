@@ -5,18 +5,18 @@ const products = {
             id: 'clothing-1',
             name: 'Лонгслив хлопковый с принтом',
             price: 1999,
-            cardImage: '../card-img/longsliv11.jpg',
+            cardImage: 'http://localhost:5000/images/static/card-img/longsliv11.jpg',
             shortDesc: 'Стильный и удобный лонгслив, созданный для повседневного ношения и комфортной носки.',
             images: [
-                '../card-img/longsliv11.jpg',
-                '../card-img/longsliv12.jpg',
-                '../card-img/longsliv13.jpg',
-                '../card-img/longsliv14.jpg',
-                '../card-img/longsliv15.jpg',
-                '../card-img/longsliv16.jpg',
-                '../card-img/longsliv17.jpg',
-                '../card-img/longsliv18.jpg',
-                '../card-img/longsliv19.jpg'
+                'http://localhost:5000/images/static/card-img/longsliv11.jpg',
+                'http://localhost:5000/images/static/card-img/longsliv12.jpg',
+                'http://localhost:5000/images/static/card-img/longsliv13.jpg',
+                'http://localhost:5000/images/static/card-img/longsliv14.jpg',
+                'http://localhost:5000/images/static/card-img/longsliv15.jpg',
+                'http://localhost:5000/images/static/card-img/longsliv16.jpg',
+                'http://localhost:5000/images/static/card-img/longsliv17.jpg',
+                'http://localhost:5000/images/static/card-img/longsliv18.jpg',
+                'http://localhost:5000/images/static/card-img/longsliv19.jpg'
             ],
             characteristics: [
                 'Состав: 100% хлопок',
@@ -29,17 +29,17 @@ const products = {
             id: 'clothing-2',
             name: 'Брюки широкие с кожаной фактурой',
             price: 3599,
-            cardImage: '../card-img/jeans11.jpg',
+            cardImage: 'http://localhost:5000/images/static/card-img/jeans11.jpg',
             shortDesc: 'Удобные широкие брюки с эффектом кожи для уличного стиля.',
             images: [
-                '../card-img/jeans11.jpg',
-                '../card-img/jeans12.jpg',
-                '../card-img/jeans13.jpg',
-                '../card-img/jeans14.jpg',
-                '../card-img/jeans15.jpg',
-                '../card-img/jeans16.jpg',
-                '../card-img/jeans17.jpg',
-                '../card-img/jeans18.jpg'
+                'http://localhost:5000/images/static/card-img/jeans11.jpg',
+                'http://localhost:5000/images/static/card-img/jeans12.jpg',
+                'http://localhost:5000/images/static/card-img/jeans13.jpg',
+                'http://localhost:5000/images/static/card-img/jeans14.jpg',
+                'http://localhost:5000/images/static/card-img/jeans15.jpg',
+                'http://localhost:5000/images/static/card-img/jeans16.jpg',
+                'http://localhost:5000/images/static/card-img/jeans17.jpg',
+                'http://localhost:5000/images/static/card-img/jeans18.jpg'
             ],
             characteristics: [
                 'Материал: искусственная кожа',
@@ -52,16 +52,16 @@ const products = {
             id: 'clothing-3',
             name: 'Футболка с новогодним принтом',
             price: 1599,
-            cardImage: '../card-img/footbolka11.jpg',
+            cardImage: 'http://localhost:5000/images/static/card-img/footbolka11.jpg',
             shortDesc: 'Классная футболка с ярким принтом с котом в новогодней стилистике.',
             images: [
-                '../card-img/footbolka11.jpg',
-                '../card-img/footbolka12.jpg',
-                '../card-img/footbolka13.jpg',
-                '../card-img/footbolka14.jpg',
-                '../card-img/footbolka15.jpg',
-                '../card-img/footbolka16.jpg',
-                '../card-img/footbolka17.jpg'
+                'http://localhost:5000/images/static/card-img/footbolka11.jpg',
+                'http://localhost:5000/images/static/card-img/footbolka12.jpg',
+                'http://localhost:5000/images/static/card-img/footbolka13.jpg',
+                'http://localhost:5000/images/static/card-img/footbolka14.jpg',
+                'http://localhost:5000/images/static/card-img/footbolka15.jpg',
+                'http://localhost:5000/images/static/card-img/footbolka16.jpg',
+                'http://localhost:5000/images/static/card-img/footbolka17.jpg'
             ],
             characteristics: [
                 'Состав: 100% хлопок',
@@ -92,17 +92,17 @@ const products = {
             id: 'footwear-1',
             name: 'Кеды городские',
             price: 2599,
-            cardImage: '../card-img/kedi11.jpg',
+            cardImage: 'http://localhost:5000/images/static/card-img/kedi11.jpg',
             shortDesc: 'Удобные городские кеды для повседневной носки.',
             images: [
-                '../card-img/kedi11.jpg',
-                '../card-img/kedi12.jpg',
-                '../card-img/kedi13.jpg',
-                '../card-img/kedi14.jpg',
-                '../card-img/kedi15.jpg',
-                '../card-img/kedi16.jpg',
-                '../card-img/kedi17.jpg',
-                '../card-img/kedi18.jpg'
+                'http://localhost:5000/images/static/card-img/kedi11.jpg',
+                'http://localhost:5000/images/static/card-img/kedi12.jpg',
+                'http://localhost:5000/images/static/card-img/kedi13.jpg',
+                'http://localhost:5000/images/static/card-img/kedi14.jpg',
+                'http://localhost:5000/images/static/card-img/kedi15.jpg',
+                'http://localhost:5000/images/static/card-img/kedi16.jpg',
+                'http://localhost:5000/images/static/card-img/kedi17.jpg',
+                'http://localhost:5000/images/static/card-img/kedi18.jpg'
             ],
             characteristics: [
                 'Материал: текстиль',
@@ -115,21 +115,21 @@ const products = {
             id: 'footwear-2',
             name: 'Ботинки с прошивкой',
             price: 4999,
-            cardImage: '../card-img/botinki11.jpg',
+            cardImage: 'http://localhost:5000/images/static/card-img/botinki11.jpg',
             shortDesc: 'Надёжные ботинки с прошивкой для холодного сезона.',
             images: [
-                '../card-img/botinki11.jpg',
-                '../card-img/botinki12.jpg',
-                '../card-img/botinki13.jpg',
-                '../card-img/botinki14.jpg',
-                '../card-img/botinki15.jpg',
-                '../card-img/botinki16.jpg',
-                '../card-img/botinki17.jpg',
-                '../card-img/botinki18.jpg',
-                '../card-img/botinki19.jpg',
-                '../card-img/botinki20.jpg',
-                '../card-img/botinki21.jpg',
-                '../card-img/botinki22.jpg'
+                'http://localhost:5000/images/static/card-img/botinki11.jpg',
+                'http://localhost:5000/images/static/card-img/botinki12.jpg',
+                'http://localhost:5000/images/static/card-img/botinki13.jpg',
+                'http://localhost:5000/images/static/card-img/botinki14.jpg',
+                'http://localhost:5000/images/static/card-img/botinki15.jpg',
+                'http://localhost:5000/images/static/card-img/botinki16.jpg',
+                'http://localhost:5000/images/static/card-img/botinki17.jpg',
+                'http://localhost:5000/images/static/card-img/botinki18.jpg',
+                'http://localhost:5000/images/static/card-img/botinki19.jpg',
+                'http://localhost:5000/images/static/card-img/botinki20.jpg',
+                'http://localhost:5000/images/static/card-img/botinki21.jpg',
+                'http://localhost:5000/images/static/card-img/botinki22.jpg'
             ],
             characteristics: [
                 'Материал: кожа',
@@ -142,16 +142,16 @@ const products = {
             id: 'footwear-3',
             name: 'Угги тёплые с мехом',
             price: 3999,
-            cardImage: '../card-img/uggi11.jpg',
+            cardImage: 'http://localhost:5000/images/static/card-img/uggi11.jpg',
             shortDesc: 'Тёплые угги с натуральным мехом для холодной погоды.',
             images: [
-                '../card-img/uggi11.jpg',
-                '../card-img/uggi12.jpg',
-                '../card-img/uggi13.jpg',
-                '../card-img/uggi14.jpg',
-                '../card-img/uggi15.jpg',
-                '../card-img/uggi16.jpg',
-                '../card-img/uggi17.jpg'
+                'http://localhost:5000/images/static/card-img/uggi11.jpg',
+                'http://localhost:5000/images/static/card-img/uggi12.jpg',
+                'http://localhost:5000/images/static/card-img/uggi13.jpg',
+                'http://localhost:5000/images/static/card-img/uggi14.jpg',
+                'http://localhost:5000/images/static/card-img/uggi15.jpg',
+                'http://localhost:5000/images/static/card-img/uggi16.jpg',
+                'http://localhost:5000/images/static/card-img/uggi17.jpg'
             ],
             characteristics: [
                 'Материал: текстиль + мех',
@@ -182,14 +182,14 @@ const products = {
             id: 'accessories-1',
             name: 'Сумка через плечо',
             price: 2199,
-            cardImage: '../card-img/sumka11.jpg',
+            cardImage: 'http://localhost:5000/images/static/card-img/sumka11.jpg',
             shortDesc: 'Компактная сумка для повседневного использования.',
             images: [
-                '../card-img/sumka11.jpg',
-                '../card-img/sumka12.jpg',
-                '../card-img/sumka13.jpg',
-                '../card-img/sumka14.jpg',
-                '../card-img/sumka15.jpg'
+                'http://localhost:5000/images/static/card-img/sumka11.jpg',
+                'http://localhost:5000/images/static/card-img/sumka12.jpg',
+                'http://localhost:5000/images/static/card-img/sumka13.jpg',
+                'http://localhost:5000/images/static/card-img/sumka14.jpg',
+                'http://localhost:5000/images/static/card-img/sumka15.jpg'
             ],
             characteristics: [
                 'Материал: эко-кожа',
@@ -202,14 +202,14 @@ const products = {
             id: 'accessories-2',
             name: 'Бейсболка',
             price: 799,
-            cardImage: '../card-img/kepka11.jpg',
+            cardImage: 'http://localhost:5000/images/static/card-img/kepka11.jpg',
             shortDesc: 'Лёгкая спортивная бейсболка, удобна в носке.',
             images: [
-                '../card-img/kepka11.jpg',
-                '../card-img/kepka12.jpg',
-                '../card-img/kepka13.jpg',
-                '../card-img/kepka14.jpg'
-                ,'../card-img/kepochka.jpeg'
+                'http://localhost:5000/images/static/card-img/kepka11.jpg',
+                'http://localhost:5000/images/static/card-img/kepka12.jpg',
+                'http://localhost:5000/images/static/card-img/kepka13.jpg',
+                'http://localhost:5000/images/static/card-img/kepka14.jpg'
+                ,'http://localhost:5000/images/static/card-img/kepochka.jpeg'
             ],
             characteristics: [
                 'Материал: хлопок',
@@ -222,14 +222,14 @@ const products = {
             id: 'accessories-3',
             name: 'Цепочка из нержавеющей стали',
             price: 1299,
-            cardImage: '../card-img/cepochka11.jpg',
+            cardImage: 'http://localhost:5000/images/static/card-img/cepochka11.jpg',
             shortDesc: 'Стильная цепочка из нержавеющей стали для повседневного образа.',
             images: [
-                '../card-img/cepochka11.jpg',
-                '../card-img/cepochka12.jpg',
-                '../card-img/cepochka13.jpg',
-                '../card-img/cepochka14.jpg',
-                '../card-img/cepochka15.jpg'
+                'http://localhost:5000/images/static/card-img/cepochka11.jpg',
+                'http://localhost:5000/images/static/card-img/cepochka12.jpg',
+                'http://localhost:5000/images/static/card-img/cepochka13.jpg',
+                'http://localhost:5000/images/static/card-img/cepochka14.jpg',
+                'http://localhost:5000/images/static/card-img/cepochka15.jpg'
             ],
             characteristics: [
                 'Материал: нержавеющая сталь',

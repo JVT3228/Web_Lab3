@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Личный кабинет</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="profile-container">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+      <button class="back-btn btn btn-link" onclick="history.back()">← Назад</button>
+      <h1 style="margin:0">Личный кабинет</h1>
+    </div>
+    <div class="profile-card">
+      <div class="profile-avatar" id="profile-avatar">👤</div>
+      <div class="profile-details">
+        <h2 id="profile-display-name">Профиль</h2>
+        <p><strong>Имя пользователя:</strong> <span id="profile-username"></span></p>
+        <p><strong>Email:</strong> <span id="profile-email"></span></p>
+        <p><strong>Телефон:</strong> <span id="profile-phone"></span></p>
+        <div style="margin-top:10px">
+          <input type="file" id="avatar-input" accept="image/*" style="display:block;margin-bottom:8px">
+          <button id="avatar-remove" class="btn btn-sm btn-outline-danger">Удалить аватар</button>
+        </div>
+        <div style="margin-top:10px"><button id="logout-btn" class="btn btn-outline-secondary">Выйти</button></div>
+      </div>
+    </div>
+
+    <div class="orders-history">
+      <h3>История заказов</h3>
+      <div id="orders-list"></div>
+    </div>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', async ()=>{
+      const token = localStorage.getItem('token');
+      if (!token) { window.location.href = '/login.html'; return; }
+      try{
+        const res = await fetch('http://localhost:5000/api/auth/me', {headers:{'Authorization': 'Bearer ' + token}});
+        if (res.ok){
+          const data = await res.json();
+          document.getElementById('profile-username').textContent = data.username || '';
+          document.getElementById('profile-email').textContent = data.email || '';
+          document.getElementById('profile-phone').textContent = data.phone || '';
+        }
+
+        // load orders
+        const or = await fetch('http://localhost:5000/api/orders', { headers: {'Authorization': 'Bearer ' + token} });
+        if (or.ok){
+          const orders = await or.json();
+          const list = document.getElementById('orders-list');
+          if (!orders || !orders.length) {
+            list.innerHTML = '<p>Заказов пока нет.</p>';
+          } else {
+            list.innerHTML = '';
+            orders.forEach(o=>{
+              const div = document.createElement('div');
+              div.className = 'order-item';
+              div.style.border = '1px solid #ddd';
+              div.style.padding = '10px';
+              div.style.marginBottom = '8px';
+              div.innerHTML = `
+                <div><strong>Заказ:</strong> ${o.order_number || o.id} <small style="color:#666">(${o.status})</small></div>
+                <div><strong>Итого:</strong> ${o.total_amount} ₽</div>
+                <div><strong>Создан:</strong> ${o.created_at}</div>
+                <div style="margin-top:6px;">
+                  <button class="btn btn-sm btn-outline-primary view-order" data-id="${o.id}">Просмотреть</button>
+                  ${o.status === 'pending' ? '<button class="btn btn-sm btn-outline-danger cancel-order ms-2" data-id="'+o.id+'">Отменить</button>' : ''}
+                </div>`;
+              list.appendChild(div);
+            });
+            // attach handlers
+            list.addEventListener('click', async (e)=>{
+              if (e.target.classList.contains('view-order')){
+                const id = e.target.getAttribute('data-id');
+                window.location.href = '/order.html?id=' + encodeURIComponent(id);
+              }
+              if (e.target.classList.contains('cancel-order')){
+                const id = e.target.getAttribute('data-id');
+                if (!confirm('Отменить заказ?')) return;
+                const cr = await fetch('http://localhost:5000/api/orders/' + id + '/cancel', { method: 'PUT', headers: {'Authorization': 'Bearer ' + token} });
+                if (cr.ok){ alert('Заказ отменён'); window.location.reload(); } else { const err = await cr.json(); alert(err.error || 'Ошибка'); }
+              }
+            });
+          }
+        }
+      }catch(e){console.error(e)}
+      document.getElementById('logout-btn').addEventListener('click', ()=>{
+        localStorage.removeItem('token'); localStorage.removeItem('user_id');
+        window.location.href = '/';
+      })
+      // Avatar handling (client-side storage)
+      const avatarContainer = document.getElementById('profile-avatar');
+      const avatarInput = document.getElementById('avatar-input');
+      const avatarRemove = document.getElementById('avatar-remove');
+      function refreshAvatar(){
+        const data = localStorage.getItem('user_avatar');
+        if (data){
+          avatarContainer.innerHTML = `<img src="${data}" style="width:96px;height:96px;border-radius:50%;object-fit:cover;">`;
+        } else {
+          avatarContainer.textContent = '👤';
+        }
+        if (window.renderHeaderAvatar) window.renderHeaderAvatar();
+      }
+      refreshAvatar();
+
+      avatarInput.addEventListener('change', (ev)=>{
+        const f = ev.target.files && ev.target.files[0];
+        if (!f) return;
+        if (!f.type.startsWith('image/')) { alert('Выберите изображение'); return; }
+        if (f.size > 2 * 1024 * 1024) { alert('Файл должен быть меньше 2MB'); return; }
+        const r = new FileReader();
+        r.onload = ()=>{
+          try { localStorage.setItem('user_avatar', r.result); refreshAvatar(); alert('Аватар обновлён'); } catch (e){ alert('Ошибка сохранения аватара'); }
+        };
+        r.readAsDataURL(f);
+      });
+
+      avatarRemove.addEventListener('click', ()=>{
+        if (!confirm('Удалить аватар?')) return;
+        localStorage.removeItem('user_avatar'); refreshAvatar();
+      });
+    })
+  </script>
+</body>
+</html>
