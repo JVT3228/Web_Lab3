@@ -7,6 +7,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/profile.css">
+  <link rel="icon" href="/img/logo.png">
 </head>
 <body id="top">
   <header class="site-header" role="banner">
@@ -137,6 +138,21 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="/scripts.js"></script>
   <script>
+    // Ensure switchTab exists early to avoid ReferenceError from inline onclick
+    window.switchTab = function(tab, el){
+      try {
+        document.querySelectorAll('.profile-tab').forEach(t=> t.style.display = 'none');
+        const target = document.getElementById(tab + '-tab');
+        if (target) target.style.display = 'block';
+        document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+        if (el && el.classList) el.classList.add('active');
+      } catch(e){
+        // If DOM not ready, store pending and let the main initializer handle it
+        window._pendingSwitch = { tab, el };
+      }
+    };
+  </script>
+  <script>
     document.addEventListener('DOMContentLoaded', async ()=>{
       const token = localStorage.getItem('token');
       if (!token) { window.location.href = '/login.html'; return; }
@@ -214,13 +230,20 @@
         }
       }catch(e){console.error(e)}
       
-      // Tab switching
-      window.switchTab = function(tab) {
+      // Tab switching (enhanced)
+      window.switchTab = function(tab, el) {
         document.querySelectorAll('.profile-tab').forEach(t => t.style.display = 'none');
-        document.getElementById(tab + '-tab').style.display = 'block';
+        const target = document.getElementById(tab + '-tab');
+        if (target) target.style.display = 'block';
         document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
-        event.target.classList.add('active');
+        // prefer explicit element param
+        if (el && el.classList) el.classList.add('active');
       };
+      // If a switch was requested before DOM ready, apply it now
+      if (window._pendingSwitch && window._pendingSwitch.tab) {
+        try { window.switchTab(window._pendingSwitch.tab, window._pendingSwitch.el); } catch(e){}
+        window._pendingSwitch = null;
+      }
       
       // Logout
       window.logoutUser = function() {
@@ -326,17 +349,9 @@
               const itemDiv = document.createElement('div');
               itemDiv.style.cssText = 'padding:12px; background:#f5f5f5; border-radius:4px; display:grid; grid-template-columns:60px 1fr auto; gap:12px; align-items:center;';
               
-              let imageUrl = '';
-              if (item.product_image) {
-                imageUrl = item.product_image.startsWith('http') ? item.product_image : `http://localhost:5000${item.product_image}`;
-              } else {
-                imageUrl = `http://localhost:5000/images/products/${item.product_id}`;
-              }
-              
               itemDiv.innerHTML = `
-                <img src="${imageUrl}" alt="${item.product_name}" style="width:60px; height:60px; object-fit:cover; border-radius:4px; flex-shrink:0; background:#e7e7e7;" onerror="this.style.background='#e7e7e7'; this.style.fontSize='30px'; this.textContent='📦';">
                 <div>
-                  <div style="font-weight:600; font-size:14px; margin-bottom:4px;">${item.product_name}</div>
+                  <div style="font-weight:600; font-size:14px; margin-bottom:4px; width:30vw">${item.product_name}</div>
                   <div style="font-size:12px; color:#777;">x${item.quantity} шт.</div>
                 </div>
                 <div style="text-align:right;">

@@ -504,10 +504,6 @@ class ModalSearchManager {
                             </div>
                             <button class="btn btn-sm btn-outline-secondary w-100" onclick="modalSearchManager.applyPriceFilter()">Применить</button>
                         </div>
-                        <div class="filter-group">
-                            <h4>Цвет</h4>
-                            <div id="modalColorFilters"></div>
-                        </div>
                     </div>
                     <div class="search-modal-results">
                         <div class="search-modal-sort">
@@ -610,13 +606,21 @@ class ModalSearchManager {
 
         noResults.style.display = 'none';
         container.innerHTML = this.results.slice(0, 20).map(p => `
-            <a href="/product.html?id=${p.category}-${p.id}" class="search-modal-card">
-                <img src="${p.images && p.images[0] ? p.images[0] : ''}" alt="${p.name}">
-                <h5>${p.name}</h5>
-                <div class="price">${p.price} ₽</div>
+          <div class="search-modal-card">
+            <a href="/product.html?id=${p.category}-${p.id}" class="search-modal-link">
+              <img src="${p.images && p.images[0] ? p.images[0] : ''}" alt="${p.name}">
+              <h5>${p.name}</h5>
             </a>
+            <div class="price">${p.price} ₽</div>
+            <button class="btn btn-primary btn-sm w-100 buy-btn" data-product-id="${p.id}" data-product-name="${p.name.replace(/'/g, "\\'")}" data-product-price="${p.price}" onclick="handleBuyButtonClick(this)">Купить</button>
+          </div>
         `).join('');
+        
+        // Initialize buy buttons for cart items
+        if (window.initBuyButtons) initBuyButtons();
     }
+
+
 
     applyPriceFilter() {
         this.filters.minPrice = parseFloat(document.getElementById('modalMinPrice').value) || 0;

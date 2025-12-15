@@ -94,7 +94,7 @@ function renderProductCard(product, category) {
         </h4>
         <div class="product-price">${product.price} ₽</div>
         <div class="card-actions">
-            <button class="btn btn-primary" onclick="addToCart(${productId}, '${product.name.replace(/'/g, "\\'")}', ${product.price})">Купить</button>
+            <button class="btn btn-primary buy-btn" data-product-id="${productId}" data-product-name="${product.name.replace(/'/g, "\\'")}" data-product-price="${product.price}" onclick="handleBuyButtonClick(this)">Купить</button>
             <a href="product.html?id=${productId}" class="btn btn-outline-secondary ms-2">Подробнее</a>
         </div>
     `;
@@ -304,7 +304,7 @@ function renderProductPage(product) {
                     </ul>
                     <div class="product-price">${product.price} ₽</div>
                     <div class="mt-3">
-                        <button class="btn btn-outline-secondary" onclick="history.back()">Вернуться</button>
+                        <a href="javascript:history.back()" class="page-back"><span class="icon">←</span><span>Вернуться</span></a>
                         <button class="btn btn-primary ms-3">Оформить заказ</button>
                         <button class="btn btn-link ms-3" data-bs-toggle="collapse" data-bs-target="#extraDetails" aria-expanded="false" aria-controls="extraDetails">Подробнее</button>
                     </div>

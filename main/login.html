@@ -13,6 +13,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="/img/logo.png">
 
 </head>
 
@@ -122,13 +123,20 @@ document.addEventListener('DOMContentLoaded', ()=>{
 
     form.addEventListener('submit', async (e)=>{
         e.preventDefault();
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const origText = submitBtn ? submitBtn.textContent : null;
         const email = document.getElementById('email')?.value.trim();
         const phoneRaw = document.getElementById('phone')?.value.trim();
         const password = document.getElementById('password')?.value;
         const phoneClean = cleanPhone(phoneRaw);
         const login = email || phoneRaw;
+
         if (!login || !password){ alert('Заполните поля'); return; }
+        if (password.length < 6){ alert('Пароль должен быть не менее 6 символов'); return; }
         if (phoneRaw && !phoneClean && !email){ alert('Введите корректный телефон в формате российского номера'); return; }
+
+        // disable submit to prevent double sends
+        if (submitBtn){ submitBtn.disabled = true; submitBtn.textContent = 'Вход...'; }
 
         try{
             const res = await fetch('http://localhost:5000/api/auth/login', {
@@ -169,6 +177,8 @@ document.addEventListener('DOMContentLoaded', ()=>{
         }catch(err){
             console.error(err);
             alert('Ошибка подключения к серверу');
+        } finally {
+            if (submitBtn){ submitBtn.disabled = false; if (origText) submitBtn.textContent = origText; }
         }
     });
 });
