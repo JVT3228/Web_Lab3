@@ -434,3 +434,210 @@ document.addEventListener('DOMContentLoaded', async ()=>{
 
     await renderCart();
 });
+
+// Modal Search — открывает поиск как модальное окно поверх страницы
+class ModalSearchManager {
+    constructor() {
+        this.modal = null;
+        this.filters = {
+            query: '',
+            category: [],
+            minPrice: 0,
+            maxPrice: 999999,
+            color: [],
+            sortBy: 'name'
+        };
+        this.results = [];
+        this.allFilters = {};
+        this.init();
+    }
+
+    init() {
+        // Create modal HTML if not exists
+        if (!document.getElementById('search-modal')) {
+            this.createModal();
+        }
+        this.modal = document.getElementById('search-modal');
+        
+        // Bind events
+        const trigger = document.getElementById('header-search-input');
+        if (trigger) {
+            trigger.addEventListener('focus', () => this.open());
+        }
+        
+        const closeBtn = this.modal?.querySelector('.search-modal-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => this.close());
+        }
+        
+        // Close on outside click
+        this.modal?.addEventListener('click', (e) => {
+            if (e.target === this.modal) this.close();
+        });
+
+        // Load filters
+        this.loadFilters();
+    }
+
+    createModal() {
+        const div = document.createElement('div');
+        div.id = 'search-modal';
+        div.className = 'search-modal';
+        div.innerHTML = `
+            <div class="search-modal-content">
+                <div class="search-modal-header">
+                    <h2>Поиск товаров</h2>
+                    <button class="search-modal-close">&times;</button>
+                </div>
+                <div class="search-modal-body">
+                    <div class="search-modal-filters">
+                        <div class="filter-group">
+                            <h4>Категория</h4>
+                            <div id="modalCategoryFilters"></div>
+                        </div>
+                        <div class="filter-group">
+                            <h4>Цена</h4>
+                            <div class="price-range-inputs">
+                                <input type="number" id="modalMinPrice" placeholder="От" min="0" step="100">
+                                <span>-</span>
+                                <input type="number" id="modalMaxPrice" placeholder="До" min="0" step="100">
+                            </div>
+                            <button class="btn btn-sm btn-outline-secondary w-100" onclick="modalSearchManager.applyPriceFilter()">Применить</button>
+                        </div>
+                        <div class="filter-group">
+                            <h4>Цвет</h4>
+                            <div id="modalColorFilters"></div>
+                        </div>
+                    </div>
+                    <div class="search-modal-results">
+                        <div class="search-modal-sort">
+                            <label for="modalSort">Сортировка:</label>
+                            <select id="modalSort" onchange="modalSearchManager.filters.sortBy = this.value; modalSearchManager.performSearch();">
+                                <option value="name">По названию</option>
+                                <option value="price">По цене (возраст.)</option>
+                                <option value="-price">По цене (убыв.)</option>
+                                <option value="newest">Новинки</option>
+                            </select>
+                        </div>
+                        <div class="search-modal-grid" id="modalSearchResults"></div>
+                        <div class="no-results" id="modalNoResults" style="display:none;">Товары не найдены</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(div);
+    }
+
+    async loadFilters() {
+        try {
+            const res = await fetch('http://localhost:5000/api/products/filters');
+            this.allFilters = await res.json();
+            this.renderFilterUI();
+        } catch (e) {
+            console.error('Failed to load filters:', e);
+        }
+    }
+
+    renderFilterUI() {
+        const catDiv = document.getElementById('modalCategoryFilters');
+        if (catDiv && this.allFilters.categories) {
+            catDiv.innerHTML = this.allFilters.categories.map(cat => `
+                <label class="filter-check">
+                    <input type="checkbox" value="${cat}" onchange="modalSearchManager.updateFilters()">
+                    ${cat}
+                </label>
+            `).join('');
+        }
+
+        const colorDiv = document.getElementById('modalColorFilters');
+        if (colorDiv && this.allFilters.colors) {
+            colorDiv.innerHTML = this.allFilters.colors.slice(0, 10).map((color, i) => `
+                <label class="filter-check">
+                    <input type="checkbox" value="${color}" onchange="modalSearchManager.updateFilters()">
+                    ${color}
+                </label>
+            `).join('');
+        }
+
+        if (this.allFilters.min_price !== undefined) {
+            document.getElementById('modalMinPrice').value = Math.round(this.allFilters.min_price);
+            document.getElementById('modalMinPrice').min = Math.round(this.allFilters.min_price);
+        }
+        if (this.allFilters.max_price !== undefined) {
+            document.getElementById('modalMaxPrice').value = Math.round(this.allFilters.max_price);
+            document.getElementById('modalMaxPrice').max = Math.round(this.allFilters.max_price);
+        }
+    }
+
+    updateFilters() {
+        this.filters.category = Array.from(document.querySelectorAll('#modalCategoryFilters input:checked')).map(el => el.value);
+        this.filters.color = Array.from(document.querySelectorAll('#modalColorFilters input:checked')).map(el => el.value);
+        this.performSearch();
+    }
+
+    async performSearch() {
+        const params = new URLSearchParams();
+        if (this.filters.query) params.append('query', this.filters.query);
+        if (this.filters.category.length) {
+            this.filters.category.forEach(c => params.append('category', c));
+        }
+        if (this.filters.minPrice) params.append('min_price', this.filters.minPrice);
+        if (this.filters.maxPrice < 999999) params.append('max_price', this.filters.maxPrice);
+        if (this.filters.color.length) {
+            this.filters.color.forEach(c => params.append('color', c));
+        }
+        params.append('sort_by', this.filters.sortBy);
+
+        try {
+            const res = await fetch(`http://localhost:5000/api/products/search?${params}`);
+            const data = await res.json();
+            this.results = data.results || [];
+            this.renderResults();
+        } catch (e) {
+            console.error('Search failed:', e);
+        }
+    }
+
+    renderResults() {
+        const container = document.getElementById('modalSearchResults');
+        const noResults = document.getElementById('modalNoResults');
+
+        if (this.results.length === 0) {
+            container.innerHTML = '';
+            noResults.style.display = 'block';
+            return;
+        }
+
+        noResults.style.display = 'none';
+        container.innerHTML = this.results.slice(0, 20).map(p => `
+            <a href="/product.html?id=${p.category}-${p.id}" class="search-modal-card">
+                <img src="${p.images && p.images[0] ? p.images[0] : ''}" alt="${p.name}">
+                <h5>${p.name}</h5>
+                <div class="price">${p.price} ₽</div>
+            </a>
+        `).join('');
+    }
+
+    applyPriceFilter() {
+        this.filters.minPrice = parseFloat(document.getElementById('modalMinPrice').value) || 0;
+        this.filters.maxPrice = parseFloat(document.getElementById('modalMaxPrice').value) || 999999;
+        this.performSearch();
+    }
+
+    open(query = '') {
+        this.filters.query = query;
+        this.modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        this.performSearch();
+    }
+
+    close() {
+        this.modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+
+let modalSearchManager;
+document.addEventListener('DOMContentLoaded', () => {
+    modalSearchManager = new ModalSearchManager();
+});

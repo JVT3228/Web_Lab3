@@ -4,37 +4,130 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Корзина</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/cart.css">
 </head>
-<body>
-  <div class="cart-container">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-      <button class="back-btn btn btn-link" onclick="history.back()">← Назад</button>
-      <h1 style="margin:0">Корзина</h1>
+<body id="top">
+  <header class="site-header" role="banner">
+    <div class="container">
+      <div class="brand"><a href="index.html"><img src="http://localhost:5000/images/static/img/logo.png" alt="Logo"></a></div>
+      <nav class="site-nav" role="navigation" aria-label="Основное меню">
+        <ul class="nav-menu">
+          <li><a href="index.html">Главная</a></li>
+          <li><a href="catalog.html">Каталог</a></li>
+          <li><a href="about.html">О нас</a></li>
+          <li><a href="contacts.html">Контакты</a></li>
+        </ul>
+      </nav>
+      <div class="header-actions">
+          <a href="cart.html" class="header-cart" aria-label="Корзина" title="Корзина">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6h15l-1.5 9h-11L6 6z" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="20" r="1.5" fill="#333"/><circle cx="18" cy="20" r="1.5" fill="#333"/></svg>
+          <span class="cart-count badge bg-danger" style="display:none">0</span>
+          </a>
+          <a href="login.html" class="header-login btn btn-outline-primary btn-sm">Вход</a>
+          <a href="register.html" class="btn btn-primary btn-sm ms-1">Регистрация</a>
+          <a href="profile.html" class="header-profile" aria-label="Профиль" title="Профиль" style="display:none">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="7" r="4" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+      </div>
     </div>
-    <div id="cart-items"></div>
-    <div class="cart-summary">
-      <div class="total-amount">Итого: <span id="cart-total">0</span> ₽</div>
-      <button id="checkout-btn" class="btn">Оформить заказ</button>
-    </div>
-    <div id="guest-message" style="display:none;">Для оформления заказа необходимо <a href="/login.html">войти</a></div>
-  </div>
-  <script src="/cart.js"></script>
-  <script src="/scripts.js"></script>
-  <!-- Checkout modal -->
-  <div id="checkout-modal" class="modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); align-items:center; justify-content:center;">
-    <div class="modal-dialog" style="background:#fff; padding:20px; border-radius:6px; max-width:480px; width:90%;">
-      <h3>Оформление заказа</h3>
-      <form id="checkout-form">
-        <div style="margin-bottom:10px;"><label>Имя получателя<br><input id="checkout-name" name="name" required class="form-control" style="width:100%;"></label></div>
-        <div style="margin-bottom:10px;"><label>Телефон<br><input id="checkout-phone" name="phone" required class="form-control" style="width:100%;"></label></div>
-        <div style="margin-bottom:10px;"><label>Адрес доставки (необязательно)<br><input id="checkout-address" name="address" class="form-control" style="width:100%;"></label></div>
-        <div style="text-align:right; margin-top:8px;">
-          <button type="button" id="checkout-cancel" class="btn">Отмена</button>
-          <button type="submit" id="checkout-submit" class="btn btn-primary">Отправить</button>
+  </header>
+
+  <div class="cart-page">
+      <h1 class="cart-title">Корзина</h1>
+      
+      <div class="cart-content">
+        <div class="cart-items-section">
+          <div id="cart-items" class="cart-items-list"></div>
+          <div id="empty-cart" class="empty-cart" style="display:none;">
+            <svg width="80" height="80" viewBox="0 0 24 24" fill="none" style="margin: 30px auto; display: block;" aria-hidden="true">
+              <path d="M6 6h15l-1.5 9h-11L6 6z" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="10" cy="20" r="1.5" fill="#ccc"/>
+              <circle cx="18" cy="20" r="1.5" fill="#ccc"/>
+              <path d="M12 9v6M9 12h6" stroke="#ff6a00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <h2 style="color: #222; font-weight: 600; margin-bottom: 10px;">здесь пока пусто</h2>
+            <p style="color: #777; margin-bottom: 20px;">Начните покупки или авторизуйтесь, чтобы увидеть ранее добавленные товары</p>
+            <a href="catalog.html" class="btn" style="background: #222; color: #fff; padding: 12px 40px; border-radius: 4px; display: inline-block; text-decoration: none;">перейти в каталог</a>
+          </div>
         </div>
+
+        <aside class="cart-sidebar">
+          <div class="cart-summary">
+            <div class="summary-total">
+              <div class="summary-total-label">Итого</div>
+              <div class="summary-total-amount" id="cart-total">0 ₽</div>
+            </div>
+          </div>
+
+          <button id="checkout-btn" class="btn-checkout">Оформить заказ</button>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer" role="contentinfo">
+    <div class="container">
+      <div class="footer-inner">
+        <h3><a href="privacy-policy.html">© Все права защищены</a></h3>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Checkout modal -->
+  <div id="checkout-modal" class="checkout-modal">
+    <div class="checkout-modal-content">
+      <button class="checkout-modal-close" id="checkout-close">&times;</button>
+      <h2>Оформление заказа</h2>
+      <form id="checkout-form">
+        <div class="form-group">
+          <label for="checkout-name">Имя получателя *</label>
+          <input id="checkout-name" name="name" type="text" required>
+        </div>
+        <div class="form-group">
+          <label for="checkout-phone">Телефон *</label>
+          <input id="checkout-phone" name="phone" type="tel" required>
+        </div>
+        <div class="form-group">
+          <label for="checkout-address">Адрес доставки</label>
+          <textarea id="checkout-address" name="address" rows="3"></textarea>
+        <div class="form-group">
+          <label for="checkout-comment">Комментарий к заказу</label>
+          <textarea id="checkout-comment" name="comment" rows="2"></textarea>
+        </div>
+        <button type="submit" id="checkout-submit" class="btn">Подтвердить заказ</button>
       </form>
     </div>
   </div>
+
+  <!-- Modal for add to cart notification -->
+  <div id="add-to-cart-modal" class="checkout-modal">
+    <div class="checkout-modal-content" style="max-width: 400px;">
+      <button class="checkout-modal-close" id="add-to-cart-close">&times;</button>
+      <h2>Товар добавлен</h2>
+      <div id="add-to-cart-message" style="padding: 20px 0; text-align: center;">
+        <p id="product-name" style="font-weight: 600; margin-bottom: 10px;"></p>
+        <p style="color: var(--accent); font-weight: 700; font-size: 18px;" id="product-price"></p>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <button id="continue-shopping" class="btn" style="background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 10px;">Продолжить покупки</button>
+        <a href="cart.html" class="btn" style="background: var(--accent); color: #fff; padding: 10px; text-decoration: none; text-align: center; border-radius: 4px;">В корзину</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/cart.js"></script>
+  <script src="/scripts.js"></script>
+  <script>
+    // Скрыть иконку корзины на странице самой корзины
+    document.addEventListener('DOMContentLoaded', () => {
+      const cartIcon = document.querySelector('.header-cart');
+      if (cartIcon) {
+        cartIcon.style.display = 'none';
+      }
+    });
+  </script>
 </body>
 </html>

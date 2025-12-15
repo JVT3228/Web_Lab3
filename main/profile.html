@@ -4,96 +4,237 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Личный кабинет</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/profile.css">
 </head>
-<body>
-  <div class="profile-container">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-      <button class="back-btn btn btn-link" onclick="history.back()">← Назад</button>
-      <h1 style="margin:0">Личный кабинет</h1>
-    </div>
-    <div class="profile-card">
-      <div class="profile-avatar" id="profile-avatar">👤</div>
-      <div class="profile-details">
-        <h2 id="profile-display-name">Профиль</h2>
-        <p><strong>Имя пользователя:</strong> <span id="profile-username"></span></p>
-        <p><strong>Email:</strong> <span id="profile-email"></span></p>
-        <p><strong>Телефон:</strong> <span id="profile-phone"></span></p>
-        <div style="margin-top:10px">
-          <input type="file" id="avatar-input" accept="image/*" style="display:block;margin-bottom:8px">
-          <button id="avatar-remove" class="btn btn-sm btn-outline-danger">Удалить аватар</button>
-        </div>
-        <div style="margin-top:10px"><button id="logout-btn" class="btn btn-outline-secondary">Выйти</button></div>
+<body id="top">
+  <header class="site-header" role="banner">
+    <div class="container">
+      <div class="brand"><a href="index.html"><img src="http://localhost:5000/images/static/img/logo.png" alt="Logo"></a></div>
+      <nav class="site-nav" role="navigation" aria-label="Основное меню">
+        <ul class="nav-menu">
+          <li><a href="index.html">Главная</a></li>
+          <li><a href="catalog.html">Каталог</a></li>
+          <li><a href="about.html">О нас</a></li>
+          <li><a href="contacts.html">Контакты</a></li>
+        </ul>
+      </nav>
+      <div class="header-actions">
+          <a href="cart.html" class="header-cart" aria-label="Корзина" title="Корзина">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6h15l-1.5 9h-11L6 6z" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="10" cy="20" r="1.5" fill="#333"/><circle cx="18" cy="20" r="1.5" fill="#333"/></svg>
+          <span class="cart-count badge bg-danger" style="display:none">0</span>
+          </a>
+          <a href="login.html" class="header-login btn btn-outline-primary btn-sm">Вход</a>
+          <a href="register.html" class="btn btn-primary btn-sm ms-1">Регистрация</a>
+          </a>
       </div>
     </div>
+  </header>
 
-    <div class="orders-history">
-      <h3>История заказов</h3>
-      <div id="orders-list"></div>
+  <div class="profile-page">
+      <h1>Личный кабинет</h1>
+
+      <div class="profile-layout">
+        <!-- Боковое меню -->
+        <aside class="profile-menu">
+          <nav>
+            <button class="menu-item active" onclick="switchTab('profile')">Профиль</button>
+            <button class="menu-item" onclick="switchTab('orders')">Мои заказы</button>
+            <button class="menu-item logout" onclick="logoutUser()">Выход</button>
+          </nav>
+        </aside>
+
+        <!-- Содержимое -->
+        <main class="profile-content">
+          <!-- Профиль -->
+          <section id="profile-tab" class="profile-tab active">
+            <div class="profile-header">
+              <div class="profile-avatar-section">
+                <div id="profile-avatar">👤</div>
+                <div class="avatar-actions">
+                  <button onclick="document.getElementById('avatar-input').click()" type="button">Загрузить</button>
+                  <button id="avatar-remove" type="button">Удалить</button>
+                  <input type="file" id="avatar-input" accept="image/*">
+                </div>
+              </div>
+              <div class="profile-info">
+                <h2 id="profile-display-name">Личный кабинет</h2>
+                <div class="profile-details">
+                  <div class="profile-field">
+                    <label>Имя пользователя</label>
+                    <input id="profile-username" type="text" placeholder="Не указано">
+                  </div>
+                  <div class="profile-field">
+                    <label>Email</label>
+                    <input id="profile-email" type="email" placeholder="Не указано" readonly>
+                  </div>
+                  <div class="profile-field">
+                    <label>Телефон</label>
+                    <input id="profile-phone" type="tel" placeholder="Не указано">
+                  </div>
+                  <div class="profile-field">
+                    <label>Город</label>
+                    <input id="profile-city" type="text" placeholder="Не указано">
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="profile-actions">
+              <button id="profile-save" class="btn btn-primary" type="button">Сохранить</button>
+              <button id="profile-cancel" class="btn" type="button">Отмена</button>
+            </div>
+          </section>
+
+          <!-- Мои заказы -->
+          <section id="orders-tab" class="profile-tab" style="display:none;">
+            <h2>Мои заказы</h2>
+            <div id="orders-list" class="orders-list"></div>
+            <div id="no-orders" style="text-align:center; padding:80px 200px; color:#777; min-height:200px; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+              <p style="font-size:16px; margin-bottom:20px;">У вас ещё нет заказов</p>
+              <a href="catalog.html" class="btn" style="background:var(--accent); color:#fff; padding:12px 30px; border-radius:4px; text-decoration:none; display:inline-block;">Перейти в каталог</a>
+            </div>
+          </section>
+
+          <!-- Модальное окно детали заказа -->
+          <div id="order-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center;">
+            <div style="background:#fff; border-radius:8px; padding:30px; max-width:600px; width:90%; max-height:80vh; overflow-y:auto;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3 id="modal-order-title" style="margin:0;">Заказ #123</h3>
+                <button onclick="closeOrderModal()" style="border:none; background:none; font-size:24px; cursor:pointer; color:#777;">✕</button>
+              </div>
+              <div style="border-bottom:1px solid #e7e7e7; padding-bottom:20px; margin-bottom:20px;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; font-size:14px;">
+                  <div><span style="color:#777; font-size:12px; text-transform:uppercase;">Дата</span><div id="modal-order-date" style="font-weight:600; margin-top:5px;">15.12.2025</div></div>
+                  <div><span style="color:#777; font-size:12px; text-transform:uppercase;">Статус</span><div id="modal-order-status" style="font-weight:600; margin-top:5px;">В обработке</div></div>
+                </div>
+              </div>
+              <div style="margin-bottom:20px;">
+                <h4 style="font-size:14px; color:#777; text-transform:uppercase; margin-bottom:15px;">Товары в заказе</h4>
+                <div id="modal-order-items" style="display:flex; flex-direction:column; gap:12px;">
+                  <!-- Товары добавятся сюда -->
+                </div>
+              </div>
+              <div style="border-top:1px solid #e7e7e7; padding-top:20px; text-align:right;">
+                <div style="font-size:12px; color:#777; text-transform:uppercase; margin-bottom:5px;">Итого</div>
+                <div id="modal-order-total" style="font-size:24px; font-weight:700; color:var(--accent);">0 ₽</div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
   </div>
+
+  <footer class="site-footer" role="contentinfo">
+    <div class="container">
+      <div class="footer-inner">
+        <h3><a href="privacy-policy.html">© Все права защищены</a></h3>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/scripts.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async ()=>{
       const token = localStorage.getItem('token');
       if (!token) { window.location.href = '/login.html'; return; }
+      
       try{
-        const res = await fetch('http://localhost:5000/api/auth/me', {headers:{'Authorization': 'Bearer ' + token}});
+        // Load user profile
+        const res = await fetch('http://localhost:5000/api/auth/me', {
+          headers: {'Authorization': 'Bearer ' + token}
+        });
         if (res.ok){
           const data = await res.json();
-          document.getElementById('profile-username').textContent = data.username || '';
-          document.getElementById('profile-email').textContent = data.email || '';
-          document.getElementById('profile-phone').textContent = data.phone || '';
+          document.getElementById('profile-username').value = data.username || '';
+          document.getElementById('profile-email').value = data.email || '';
+          document.getElementById('profile-phone').value = data.phone || '';
+          document.getElementById('profile-city').value = data.city || '';
+          document.getElementById('profile-display-name').textContent = (data.username || 'Личный кабинет');
         }
 
-        // load orders
-        const or = await fetch('http://localhost:5000/api/orders', { headers: {'Authorization': 'Bearer ' + token} });
+        // Load orders
+        const or = await fetch('http://localhost:5000/api/orders', { 
+          headers: {'Authorization': 'Bearer ' + token} 
+        });
         if (or.ok){
           const orders = await or.json();
           const list = document.getElementById('orders-list');
+          const noOrders = document.getElementById('no-orders');
+          
           if (!orders || !orders.length) {
-            list.innerHTML = '<p>Заказов пока нет.</p>';
+            list.style.display = 'none';
+            noOrders.style.display = 'block';
           } else {
+            list.style.display = 'flex';
+            noOrders.style.display = 'none';
             list.innerHTML = '';
             orders.forEach(o=>{
+              const orderDate = new Date(o.created_at).toLocaleDateString('ru-RU');
+              const statusClass = o.status === 'completed' ? 'completed' : o.status === 'cancelled' ? 'cancelled' : 'pending';
+              const statusText = {
+                'completed': 'Доставлено',
+                'pending': 'В обработке',
+                'cancelled': 'Отменено'
+              }[o.status] || 'В обработке';
+              
               const div = document.createElement('div');
-              div.className = 'order-item';
-              div.style.border = '1px solid #ddd';
-              div.style.padding = '10px';
-              div.style.marginBottom = '8px';
+              div.className = 'order-card';
+              div.style.cursor = 'pointer';
+              div.onclick = () => openOrderModal(o.id, token);
               div.innerHTML = `
-                <div><strong>Заказ:</strong> ${o.order_number || o.id} <small style="color:#666">(${o.status})</small></div>
-                <div><strong>Итого:</strong> ${o.total_amount} ₽</div>
-                <div><strong>Создан:</strong> ${o.created_at}</div>
-                <div style="margin-top:6px;">
-                  <button class="btn btn-sm btn-outline-primary view-order" data-id="${o.id}">Просмотреть</button>
-                  ${o.status === 'pending' ? '<button class="btn btn-sm btn-outline-danger cancel-order ms-2" data-id="'+o.id+'">Отменить</button>' : ''}
+                <div class="order-header">
+                  <div>
+                    <div class="order-number-label">Заказ</div>
+                    <div class="order-number">#${o.id}</div>
+                  </div>
+                  <div class="order-meta">
+                    <span>${orderDate}</span>
+                    <span>${o.items_count || 0} товар(ов)</span>
+                  </div>
+                  <span class="order-status ${statusClass}">${statusText}</span>
+                </div>
+                <div class="order-body">
+                  <div class="order-item">
+                    <div class="order-item-info">
+                      <div class="order-item-name">Товары заказа</div>
+                      <div class="order-item-price">${o.items_count || 0} товаров</div>
+                    </div>
+                  </div>
+                  <div class="order-total">
+                    <div class="order-total-label">Сумма</div>
+                    <div class="order-total-amount">${o.total_amount || 0} ₽</div>
+                  </div>
                 </div>`;
               list.appendChild(div);
-            });
-            // attach handlers
-            list.addEventListener('click', async (e)=>{
-              if (e.target.classList.contains('view-order')){
-                const id = e.target.getAttribute('data-id');
-                window.location.href = '/order.html?id=' + encodeURIComponent(id);
-              }
-              if (e.target.classList.contains('cancel-order')){
-                const id = e.target.getAttribute('data-id');
-                if (!confirm('Отменить заказ?')) return;
-                const cr = await fetch('http://localhost:5000/api/orders/' + id + '/cancel', { method: 'PUT', headers: {'Authorization': 'Bearer ' + token} });
-                if (cr.ok){ alert('Заказ отменён'); window.location.reload(); } else { const err = await cr.json(); alert(err.error || 'Ошибка'); }
-              }
             });
           }
         }
       }catch(e){console.error(e)}
-      document.getElementById('logout-btn').addEventListener('click', ()=>{
-        localStorage.removeItem('token'); localStorage.removeItem('user_id');
+      
+      // Tab switching
+      window.switchTab = function(tab) {
+        document.querySelectorAll('.profile-tab').forEach(t => t.style.display = 'none');
+        document.getElementById(tab + '-tab').style.display = 'block';
+        document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+        event.target.classList.add('active');
+      };
+      
+      // Logout
+      window.logoutUser = function() {
+        if (!confirm('Вы уверены?')) return;
+        localStorage.removeItem('token');
+        localStorage.removeItem('user_id');
         window.location.href = '/';
-      })
-      // Avatar handling (client-side storage)
+      };
+
+      // Avatar handling
       const avatarContainer = document.getElementById('profile-avatar');
       const avatarInput = document.getElementById('avatar-input');
       const avatarRemove = document.getElementById('avatar-remove');
+      
       function refreshAvatar(){
         const data = localStorage.getItem('user_avatar');
         if (data){
@@ -121,7 +262,107 @@
         if (!confirm('Удалить аватар?')) return;
         localStorage.removeItem('user_avatar'); refreshAvatar();
       });
-    })
+
+      // Profile save button
+      document.getElementById('profile-save').addEventListener('click', async ()=>{
+        const data = {
+          username: document.getElementById('profile-username').value,
+          phone: document.getElementById('profile-phone').value,
+          city: document.getElementById('profile-city').value
+        };
+        try {
+          const res = await fetch('http://localhost:5000/api/auth/update', {
+            method: 'PUT',
+            headers: {
+              'Authorization': 'Bearer ' + token,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+          });
+          if (res.ok) {
+            alert('Профиль обновлён');
+          } else {
+            const err = await res.json();
+            alert(err.error || 'Ошибка');
+          }
+        } catch (e) {
+          console.error(e);
+          alert('Ошибка сохранения');
+        }
+      });
+
+      document.getElementById('profile-cancel').addEventListener('click', ()=>{
+        window.location.reload();
+      });
+    });
+
+    // Функции для работы с модалью заказа
+    window.openOrderModal = async (orderId, token) => {
+      try {
+        const res = await fetch(`http://localhost:5000/api/orders/${orderId}`, {
+          headers: {'Authorization': 'Bearer ' + token}
+        });
+        if (res.ok) {
+          const order = await res.json();
+          document.getElementById('modal-order-title').textContent = `Заказ #${order.id}`;
+          
+          const orderDate = new Date(order.created_at).toLocaleDateString('ru-RU');
+          document.getElementById('modal-order-date').textContent = orderDate;
+          
+          const statusText = {
+            'completed': 'Доставлено',
+            'pending': 'В обработке',
+            'cancelled': 'Отменено'
+          }[order.status] || 'В обработке';
+          document.getElementById('modal-order-status').textContent = statusText;
+          
+          document.getElementById('modal-order-total').textContent = `${order.total_amount || 0} ₽`;
+          
+          const itemsContainer = document.getElementById('modal-order-items');
+          itemsContainer.innerHTML = '';
+          
+          if (order.items && order.items.length) {
+            order.items.forEach(item => {
+              const itemDiv = document.createElement('div');
+              itemDiv.style.cssText = 'padding:12px; background:#f5f5f5; border-radius:4px; display:grid; grid-template-columns:60px 1fr auto; gap:12px; align-items:center;';
+              
+              let imageUrl = '';
+              if (item.product_image) {
+                imageUrl = item.product_image.startsWith('http') ? item.product_image : `http://localhost:5000${item.product_image}`;
+              } else {
+                imageUrl = `http://localhost:5000/images/products/${item.product_id}`;
+              }
+              
+              itemDiv.innerHTML = `
+                <img src="${imageUrl}" alt="${item.product_name}" style="width:60px; height:60px; object-fit:cover; border-radius:4px; flex-shrink:0; background:#e7e7e7;" onerror="this.style.background='#e7e7e7'; this.style.fontSize='30px'; this.textContent='📦';">
+                <div>
+                  <div style="font-weight:600; font-size:14px; margin-bottom:4px;">${item.product_name}</div>
+                  <div style="font-size:12px; color:#777;">x${item.quantity} шт.</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-weight:700; color:var(--accent);">${(item.product_price * item.quantity).toFixed(2)} ₽</div>
+                  <div style="font-size:12px; color:#777;">${item.product_price} ₽/шт</div>
+                </div>
+              `;
+              itemsContainer.appendChild(itemDiv);
+            });
+          }
+          
+          document.getElementById('order-modal').style.display = 'flex';
+        }
+      } catch (e) {
+        console.error(e);
+        alert('Ошибка загрузки заказа');
+      }
+    };
+
+    window.closeOrderModal = () => {
+      document.getElementById('order-modal').style.display = 'none';
+    };
+
+    document.getElementById('order-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'order-modal') closeOrderModal();
+    });
   </script>
 </body>
 </html>

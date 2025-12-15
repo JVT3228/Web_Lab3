@@ -73,17 +73,6 @@
                 </div>
 
                 <div class="mb-3 row">
-                    <div class="col-sm-9 offset-sm-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="agree" name="agree" required aria-required="true"
-                                oninvalid="this.setCustomValidity('Необходимо согласиться с пользовательским соглашением')" oninput="this.setCustomValidity('')">
-                            <label class="form-check-label" for="agree">Я соглашаюсь с <a href="privacy-policy.html">Политикой конфиденциальности</a></label>
-                            <div class="form-text text-muted">Чтобы завершить регистрацию, необходимо согласиться с условиями политики конфиденциальности.</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mb-3 row">
                     <label for="password" class="col-sm-3 col-form-label text-end">Пароль</label>
                     <div class="col-sm-9"><input id="password" name="password" type="password" class="form-control" placeholder="Пароль" required oninvalid="this.setCustomValidity('Введите пароль')" oninput="this.setCustomValidity('')"></div>
                 </div>
@@ -91,6 +80,16 @@
                 <div class="mb-3 row">
                     <label for="confirmPassword" class="col-sm-3 col-form-label text-end">Подтвердите пароль</label>
                     <div class="col-sm-9"><input id="confirmPassword" name="confirmPassword" type="password" class="form-control" placeholder="Подтвердите пароль" required oninput="this.setCustomValidity('')"></div>
+                </div>
+
+                <div class="mb-3 row">
+                    <div class="col-sm-9 offset-sm-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="agree" name="agree" required aria-required="true"
+                                oninvalid="this.setCustomValidity('Необходимо согласиться с пользовательским соглашением')" oninput="this.setCustomValidity('')">
+                            <label class="form-check-label" for="agree">Я соглашаюсь с <a href="privacy-policy.html" class="policy-link" target="_blank" rel="noopener">Политикой конфиденциальности</a></label>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="mb-3 text-center">

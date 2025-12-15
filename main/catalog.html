@@ -25,21 +25,9 @@
 
       <div class="brand"><a href="index.html"><img src="http://localhost:5000/images/static/img/logo.png" alt="Logo"></a></div>
 
-      <form class="header-search" role="search" aria-label="Поиск" onsubmit="handleSearch(event)">
-
-        <div class="input-group">
-
-          <input class="form-control header-input" id="search-input" name="q" type="search" placeholder="Поиск по каталогу" aria-label="Поиск по каталогу">
-
-          <button class="btn btn-light header-search-btn" type="submit" aria-label="Поиск">
-
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-
-          </button>
-
-        </div>
-
-      </form>
+      <button class="btn btn-light header-search-btn" onclick="modalSearchManager?.open('')" style="padding:8px 10px; border:1px solid #e7e7e7; background:#fff;" aria-label="Поиск">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15z" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
     
       <nav class="site-nav" role="navigation" aria-label="Основное меню">
         <ul class="nav-menu">
@@ -144,42 +132,39 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="components.js"></script>
   <script src="scripts.js"></script>
-  <script>
-      async function handleSearch(event) {
-          event.preventDefault();
-          const query = document.getElementById('search-input').value.trim();
-          if (!query) {
-              alert('Введите поисковый запрос');
-              return;
-          }
-          try {
-              const response = await fetch('http://localhost:5000/api/products/search', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ query })
-              });
-              if (!response.ok) throw new Error('Search failed');
-              const results = await response.json();
-              displaySearchResults(results);
-          } catch (error) {
-              console.error(error);
-              alert('Ошибка при поиске');
-          }
+    <script>
+    let suggestionsTimeout;
+    
+    async function showSearchSuggestions(query) {
+      clearTimeout(suggestionsTimeout);
+      const container = document.getElementById('searchSuggestions');
+      
+      if (query.length < 2) {
+        container.style.display = 'none';
+        return;
       }
       
-      function displaySearchResults(products) {
-          const heroSection = document.querySelector('.catalog-hero');
-          let html = '<h2>Результаты поиска</h2><div class="products-grid">';
-          if (products.length === 0) {
-              html += '<p>Товары не найдены</p>';
-          } else {
-              products.forEach(p => {
-                  html += renderProductCard(p, 'search').outerHTML;
-              });
+      suggestionsTimeout = setTimeout(async () => {
+        try {
+          const res = await fetch(`http://localhost:5000/api/products/search/suggestions?q=${encodeURIComponent(query)}`);
+          const suggestions = await res.json();
+          
+          if (suggestions.length === 0) {
+            container.style.display = 'none';
+            return;
           }
-          html += '</div><button class="btn btn-secondary mt-3" onclick="location.reload()">Вернуться к каталогу</button>';
-          heroSection.innerHTML = html;
-      }
+          
+          container.innerHTML = suggestions.map(sugg => `
+            <div style="padding:10px 12px; border-bottom:1px solid #f0f0f0; cursor:pointer; font-size:14px;" onclick="selectSuggestion('${sugg.replace(/'/g, "\\'")}')">
+              ${sugg}
+            </div>
+          `).join('');
+          container.style.display = 'block';
+        } catch (e) {
+          console.error('Suggestions failed:', e);
+        }
+      }, 300);
+    }
   </script>
 
 </body>

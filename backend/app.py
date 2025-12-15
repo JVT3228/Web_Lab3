@@ -33,6 +33,19 @@ def get_db_connection():
         port=int(os.environ.get('DB_PORT', 5432))
     )
     conn.row_factory = psycopg.rows.dict_row  # вернуть результаты как dict
+    
+    # Убедимся, что столбец product_image существует в order_items
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            ALTER TABLE order_items 
+            ADD COLUMN IF NOT EXISTS product_image VARCHAR(255)
+        """)
+        conn.commit()
+        cur.close()
+    except:
+        pass
+    
     return conn
 
 def get_user_id_from_token(token):
@@ -701,7 +714,7 @@ def create_order():
         cur = conn.cursor()
 
         # Get cart items for user
-        cur.execute("SELECT c.product_id, c.quantity, p.name, p.price FROM cart c JOIN products p ON c.product_id = p.id WHERE c.user_id = %s", (user_id,))
+        cur.execute("SELECT c.product_id, c.quantity, p.name, p.price, p.image_url FROM cart c JOIN products p ON c.product_id = p.id WHERE c.user_id = %s", (user_id,))
         items = [dict(row) for row in cur.fetchall()]
         if not items:
             cur.close(); conn.close();
@@ -724,7 +737,17 @@ def create_order():
 
         # Insert order items
         for it in items:
-            cur.execute("INSERT INTO order_items (order_id, product_id, product_name, product_price, quantity) VALUES (%s, %s, %s, %s, %s)", (order_id, it['product_id'], it['name'], it['price'], it['quantity']))
+            product_image = it.get('image_url') or ''
+            # Убеждаемся что image_url непустой
+            if not product_image:
+                product_image = f'/images/products/{it["product_id"]}'
+            try:
+                cur.execute("INSERT INTO order_items (order_id, product_id, product_name, product_price, quantity, product_image) VALUES (%s, %s, %s, %s, %s, %s)", 
+                           (order_id, it['product_id'], it['name'], it['price'], it['quantity'], product_image))
+            except:
+                # Если столбца нет, пробуем без него
+                cur.execute("INSERT INTO order_items (order_id, product_id, product_name, product_price, quantity) VALUES (%s, %s, %s, %s, %s)", 
+                           (order_id, it['product_id'], it['name'], it['price'], it['quantity']))
 
         # Clear user's cart
         cur.execute("DELETE FROM cart WHERE user_id = %s", (user_id,))
@@ -756,6 +779,13 @@ def list_orders():
         cur = conn.cursor()
         cur.execute("SELECT * FROM orders WHERE user_id = %s ORDER BY created_at DESC", (user_id,))
         orders = [dict(row) for row in cur.fetchall()]
+        
+        # Добавляем информацию о товарах в каждый заказ
+        for order in orders:
+            cur.execute("SELECT COUNT(*) as items_count FROM order_items WHERE order_id = %s", (order['id'],))
+            items_count = cur.fetchone()
+            order['items_count'] = items_count['items_count'] if items_count else 0
+        
         cur.close(); conn.close()
         return jsonify(orders)
     except Exception as e:
@@ -859,25 +889,139 @@ def get_product_reviews(product_id):
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/products/search', methods=['POST'])
+@app.route('/api/products/search', methods=['GET', 'POST'])
 def search_products():
-    data = request.json or {}
-    query = data.get('query', '').strip()
-    if not query or len(query) < 2:
-        return jsonify({'error': 'Query too short'}), 400
+    data = (request.json or {}) if request.method == 'POST' else request.args
+    query = (data.get('query') or '').strip()
+    category = (data.get('category') or '').strip()
+    min_price = data.get('min_price')
+    max_price = data.get('max_price')
+    color = (data.get('color') or '').strip()
+    sort_by = data.get('sort_by', 'name')  # name, price, -price (desc), newest
+    
+    try:
+        min_price = float(min_price) if min_price else 0
+        max_price = float(max_price) if max_price else 999999
+    except Exception:
+        min_price, max_price = 0, 999999
+    
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        # Используем полнотекстовый поиск на русском
-        cur.execute("""
+        
+        # Build WHERE clause
+        where_parts = ["is_available = TRUE"]
+        params = []
+        
+        if query and len(query) >= 2:
+            where_parts.append("(to_tsvector('russian', name || ' ' || COALESCE(description, '')) @@ plainto_tsquery('russian', %s) OR name ILIKE %s)")
+            params.extend([query, f'%{query}%'])
+        
+        if category:
+            where_parts.append("category = %s")
+            params.append(category)
+        
+        if min_price or max_price:
+            where_parts.append("price BETWEEN %s AND %s")
+            params.extend([min_price, max_price])
+        
+        if color:
+            where_parts.append("characteristics::text ILIKE %s")
+            params.append(f'%{color}%')
+        
+        where_clause = " AND ".join(where_parts)
+        
+        # Sort
+        order_clause = "name ASC"
+        if sort_by == 'price':
+            order_clause = "price ASC"
+        elif sort_by == '-price':
+            order_clause = "price DESC"
+        elif sort_by == 'newest':
+            order_clause = "id DESC"
+        
+        query_str = f"""
             SELECT id, name, description, price, category, images, characteristics, stock_quantity
             FROM products
-            WHERE to_tsvector('russian', name || ' ' || description) @@ plainto_tsquery('russian', %s)
-            LIMIT 50
-        """, (query,))
+            WHERE {where_clause}
+            ORDER BY {order_clause}
+            LIMIT 100
+        """
+        
+        cur.execute(query_str, params)
         results = [dict(row) for row in cur.fetchall()]
+        
+        # Normalize images
+        for p in results:
+            normalize_product_images(p)
+            if 'image_bytes' in p:
+                p.pop('image_bytes', None)
+            if 'image_mime' in p:
+                p.pop('image_mime', None)
+        
         cur.close(); conn.close()
-        return jsonify(results)
+        return jsonify({'results': results, 'count': len(results)})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/products/search/suggestions', methods=['GET'])
+def search_suggestions():
+    """Автодополнение — популярные названия и артикулы товаров"""
+    query = (request.args.get('q') or '').strip()
+    if not query or len(query) < 2:
+        return jsonify([])
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT DISTINCT name FROM products
+            WHERE (name ILIKE %s OR id::text LIKE %s) AND is_available = TRUE
+            LIMIT 10
+        """, (f'%{query}%', f'%{query}%'))
+        suggestions = [row['name'] for row in cur.fetchall()]
+        cur.close(); conn.close()
+        return jsonify(suggestions)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/products/filters', methods=['GET'])
+def get_filters():
+    """Доступные значения для фильтров (категории, цвета, диапазоны цен)"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Categories
+        cur.execute("SELECT DISTINCT category FROM products WHERE is_available = TRUE ORDER BY category")
+        categories = [row['category'] for row in cur.fetchall()]
+        
+        # Price range
+        cur.execute("SELECT MIN(price) as min_price, MAX(price) as max_price FROM products WHERE is_available = TRUE")
+        price_row = cur.fetchone()
+        min_price = float(price_row['min_price'] or 0)
+        max_price = float(price_row['max_price'] or 0)
+        
+        # Colors (from characteristics JSON)
+        cur.execute("SELECT DISTINCT characteristics FROM products WHERE is_available = TRUE AND characteristics IS NOT NULL LIMIT 100")
+        colors_set = set()
+        for row in cur.fetchall():
+            try:
+                chars = row['characteristics']
+                if isinstance(chars, str):
+                    chars = json.loads(chars)
+                if isinstance(chars, dict) and 'цвет' in chars:
+                    colors_set.add(chars['цвет'])
+            except Exception:
+                pass
+        colors = sorted(list(colors_set))
+        
+        cur.close(); conn.close()
+        return jsonify({
+            'categories': categories,
+            'min_price': min_price,
+            'max_price': max_price,
+            'colors': colors
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
