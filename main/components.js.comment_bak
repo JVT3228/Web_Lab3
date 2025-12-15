@@ -1,50 +1,50 @@
-
-
-
-
-
-
+// // 1. Загрузка header
+// function loadHeader() {
+//     const headerHTML = `
+// <header class="site-header" role="banner">
+//     <div class="container"> 
+//         <div class="brand"><a href="index.html"><img src="http://localhost:5000/images/static/img/logo.png" alt="Logo"></a></div>
         
+//         <nav class="site-nav" role="navigation" aria-label="Основное меню">
+//             <ul class="nav-menu">
+//                 <li><a href="index.html">Главная</a></li>
+//                 <li><a href="catalog.html">Каталог</a></li>
+//                 <li><a href="about.html">О нас</a></li>
+//                 <li><a href="contacts.html">Контакты</a></li>
+//             </ul>
+//         </nav>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+//         <div class="header-actions">
+//             <a href="login.html" class="header-login btn btn-outline-primary btn-sm">Вход</a>
+//             <a href="register.html" class="btn btn-primary btn-sm ms-1">Регистрация</a>
+//         </div>
+//     </div>
+// </header>`;
     
+//     const headerElement = document.querySelector('header.site-header');
+//     if (headerElement) {
+//         headerElement.outerHTML = headerHTML;
+//     }
+// }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// // 2. Загрузка footer
+// function loadFooter() {
+//     const footerHTML = `
+// <footer class="site-footer" role="contentinfo">
+//     <div class="container">
+//         <div class="footer-inner">
+//             <h3><a href="privacy-policy.html">© Все права защищены</a></h3>
+//         </div>
+//     </div>
+// </footer>`;
     
+//     const footerElement = document.querySelector('footer.site-footer');
+//     if (footerElement) {
+//         footerElement.outerHTML = footerHTML;
+//     }
+// }
 
-
-
-
-
-
-
+// Add to cart function
 function addToCart(productId, productName, price) {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -65,13 +65,13 @@ function addToCart(productId, productName, price) {
     }).catch(e => { console.error(e); alert('Ошибка'); });
 }
 
-
+// 3. Рендеринг карточки товара
 function renderProductCard(product, category) {
     const card = document.createElement('article');
     card.className = 'product-card';
     const productId = product.id;
     
-    
+    // Обработка картинок: если из JSON это массив, берём первую
     let imageUrl = '';
     if (typeof product.images === 'string') {
         try {
@@ -101,9 +101,9 @@ function renderProductCard(product, category) {
     return card;
 }
 
-
+// 4. Инициализация модального окна для карусели товара
 function initProductLightbox() {
-    
+    // Find carousels inside .product-images or anywhere inside page-content (covers product.html)
     const selectors = Array.from(new Set(['.product-images .carousel', '.page-content .carousel']));
     const carousels = [];
     selectors.forEach(sel => document.querySelectorAll(sel).forEach(c => carousels.push(c)));
@@ -111,7 +111,7 @@ function initProductLightbox() {
 
     carousels.forEach(carousel => {
         if (!carousel) return;
-        
+        // ensure carousel has an id
         let id = carousel.id;
         if (!id) {
             id = 'carousel-' + Math.random().toString(36).slice(2, 9);
@@ -144,17 +144,17 @@ function initProductLightbox() {
                     </div>
                 </div>`;
             document.body.appendChild(modal);
-            
+            // Удалять модальное окно и backdrop после скрытия, чтобы не оставались следы
             try {
-                
+                // слушаем событие скрытия модального окна
                 modal.addEventListener('hidden.bs.modal', function onHidden() {
                     try {
                         const inst = bootstrap.Modal.getInstance(modal);
                         if (inst && typeof inst.dispose === 'function') inst.dispose();
-                    } catch (e) {  }
-                    
+                    } catch (e) { /* ignore */ }
+                    // убираем сам элемент модального окна
                     if (modal && modal.parentNode) modal.parentNode.removeChild(modal);
-                    
+                    // удаляем backdrop, если он остался
                     const backdrop = document.querySelector('.modal-backdrop');
                     if (backdrop && backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
                 });
@@ -176,11 +176,11 @@ function initProductLightbox() {
                 try {
                     const bsModal = new bootstrap.Modal(modalEl);
                     bsModal.show();
-                    
+                    // guard: ensure modal element will be removed/ disposed when closed
                     if (!modalEl._cleanupAttached) {
                         modalEl.addEventListener('hidden.bs.modal', () => {
-                            try { bsModal.dispose(); } catch (e) {  }
-                            try { modalEl.remove(); } catch (e) {  }
+                            try { bsModal.dispose(); } catch (e) { /* ignore */ }
+                            try { modalEl.remove(); } catch (e) { /* ignore */ }
                             const bd = document.querySelector('.modal-backdrop');
                             if (bd) bd.remove();
                         });
@@ -203,7 +203,7 @@ function initProductLightbox() {
         });
     });
 
-        
+        // Also attach to single product-photo images (for pages where carousel not used)
         document.querySelectorAll('.product-photo').forEach((img)=>{
             if (img.dataset.lightboxAttached) return;
             img.dataset.lightboxAttached = '1';
@@ -215,7 +215,7 @@ function initProductLightbox() {
                         if (anyModal && typeof bootstrap !== 'undefined'){
                             const bsModal = new bootstrap.Modal(anyModal);
                             bsModal.show();
-                            
+                            // ensure cleanup for this modal as well
                             if (!anyModal._cleanupAttached) {
                                 anyModal.addEventListener('hidden.bs.modal', ()=>{
                                     try { bsModal.dispose(); } catch(e){}
@@ -239,7 +239,7 @@ function initProductLightbox() {
         });
 }
 
-    
+    // Fallback gallery overlay (no Bootstrap required)
     function showFallbackGallery(srcList, startIndex){
         const existing = document.getElementById('fallback-lightbox');
         if (existing) existing.remove();
@@ -269,7 +269,7 @@ function initProductLightbox() {
         update();
     }
 
-
+// 5. Рендеринг страницы товара
 function renderProductPage(product) {
     if (!product) return;
     
@@ -324,13 +324,13 @@ function renderProductPage(product) {
         pageContent.innerHTML = containerHTML;
     }
     
-    
+    // Инициализируем модальное окно карусели с задержкой, чтобы DOM обновился
     setTimeout(() => {
         initProductLightbox();
     }, 0);
 }
 
-
+// Загрузить товары по категории с API (для category pages)
 async function getProductsByCategory(category) {
     try {
         const response = await fetch(`http://localhost:5000/api/products/category/${category}`);
@@ -343,7 +343,7 @@ async function getProductsByCategory(category) {
     }
 }
 
-
+// Получить все товары с API (для каталога)
 async function getAllProducts() {
     try {
         const response = await fetch('http://localhost:5000/api/products');
@@ -356,7 +356,7 @@ async function getAllProducts() {
     }
 }
 
-
+// 6. Функция для получения параметров из URL
 function getURLParams() {
     const params = new URLSearchParams(window.location.search);
     return {
@@ -365,8 +365,8 @@ function getURLParams() {
     };
 }
 
-
-
-
-
-
+// // 7. Инициализация при загрузке страницы
+// document.addEventListener('DOMContentLoaded', () => {
+//     loadHeader();
+//     loadFooter();
+// });

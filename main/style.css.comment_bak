@@ -40,7 +40,7 @@ table[bgcolor="#99ff99"], table[bgcolor="#77ff77"]{background:var(--card-bg) !im
 .header-search-btn:hover{background:#f5f5f5 !important;border-color:#d0d0d0}
 .header-actions .header-cart{position:relative;display:inline-flex;align-items:center;gap:8px;margin-right:6px}
 .header-actions .cart-count{position:absolute;top:-6px;right:-6px;background:var(--accent);color:#fff;border-radius:10px;padding:2px 6px;font-size:12px}
-
+/* header-cart should not be globally hidden; visibility controlled by JS */
 .header-cart{display:inline-flex}
 body.is-auth .header-login{display:none}
 
@@ -110,7 +110,7 @@ h4{font-size:17px;margin:8px 0;font-weight:500}
 .product-detail .product-images .carousel-item{display:flex;align-items:center;justify-content:center;min-height:0}
 .product-detail .product-images img{height:auto;max-height:70vh;width:auto;object-fit:contain;object-position:center}
 
-
+/* Ensure product columns align to top so right column sits next to image */
 .page-content .row{align-items:flex-start; margin-top: 26px !important;} 
 
 .site-main .page-content > .product-detail{margin-top:calc(-1 * var(--header-h));padding-top:0}
@@ -160,7 +160,7 @@ h4{font-size:17px;margin:8px 0;font-weight:500}
 .contacts-form .form-check-label{vertical-align: middle}
 .contacts-form .form-check{display:inline-flex;align-items:center;gap:8px}
 
-
+/* Make privacy/policy link in registration clearly visible */
 .contacts-form .policy-link{color:var(--accent);font-weight:700;text-decoration:underline;margin-left:4px}
 .contacts-form .form-check-label a{color:var(--accent);text-decoration:underline}
 
@@ -501,28 +501,28 @@ footer table a{color:#222}
     }
 }
 
-
+/* Back button common style */
 .back-btn{font-size:15px;color:var(--muted);padding:4px 8px;border-radius:6px}
 .back-btn:hover{color:var(--accent)}
 
-
+/* Profile card */
 .profile-card{display:flex;gap:18px;align-items:center;background:var(--card-bg);padding:18px;border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,0.04);max-width:900px;margin-bottom:18px}
 .profile-avatar{width:96px;height:96px;border-radius:50%;background:linear-gradient(135deg,#f5f5f5,#fff);display:flex;align-items:center;justify-content:center;font-size:40px;border:1px solid #eee}
 .profile-details h2{margin:0 0 8px 0;font-size:22px}
 .profile-details p{margin:6px 0;color:var(--muted)}
 
-
+/* Orders in profile */
 .orders-history .order-item{background:var(--card-bg);padding:12px;border-radius:8px;border:1px solid #f0f0f0;margin-bottom:10px}
 .orders-history .order-item .btn{margin-top:6px}
 
-
+/* header avatar */
 .header-avatar{width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.12)}
 .header-actions .header-profile{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;padding:2px;border-radius:50%;position:relative}
 .header-avatar-wrapper{width:36px;height:36px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;padding:2px;background:linear-gradient(135deg,#ff9a3c,#ff6a00);box-sizing:content-box}
 .header-avatar-wrapper .header-avatar{width:100%;height:100%;border-radius:50%;display:block;border:2px solid #fff}
 .avatar-status-dot{position:absolute;right:2px;bottom:2px;width:10px;height:10px;border-radius:50%;background:#22c55e;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,0.2)}
 
-
+/* order details */
 .order-card{background:var(--card-bg);padding:18px;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,0.04);max-width:940px}
 .order-meta{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
 .order-summary{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;color:var(--muted)}
@@ -532,7 +532,7 @@ footer table a{color:#222}
 .order-line .ol-right{white-space:nowrap;margin-left:12px;color:var(--muted)}
 .order-status{padding:4px 8px;border-radius:6px;background:#eef6ff;color:#0366d6;font-weight:600}
 
-
+/* Reviews avatars */
 .reviews-section{max-width:900px}
 .reviews-list{display:flex;flex-direction:column;gap:12px}
 .review-item{display:flex;gap:12px;align-items:flex-start;background:var(--card-bg);padding:12px;border-radius:10px;border:1px solid #f5f5f5}
@@ -726,7 +726,7 @@ ul.no-bullet{list-style:none;margin-left:0;padding-left:0}
   .hero-slider{margin:0 0 12px;border-radius:8px}
 }
 
-
+/* Cart, Order and Modal tweaks */
 .cart-container{max-width:980px;margin:24px auto;padding:12px}
 .cart-item{display:flex;gap:12px;align-items:center;padding:12px;border:1px solid #eee;border-radius:8px;background:#fff;margin-bottom:10px}
 .cart-item img{width:96px;height:96px;object-fit:cover;border-radius:6px}
@@ -743,7 +743,7 @@ ul.no-bullet{list-style:none;margin-left:0;padding-left:0}
 
 .cart-total{font-size:14px;color:var(--muted)}
 
-
+/* Improve cart page scrolling & responsiveness when many items */
 .cart-items-section{display:flex;flex-direction:column;gap:12px}
 .cart-items-list{display:flex;flex-direction:column;gap:12px;max-height:60vh;overflow:auto;padding-right:6px}
 .cart-sidebar{min-width:260px;max-width:320px}
@@ -753,7 +753,7 @@ ul.no-bullet{list-style:none;margin-left:0;padding-left:0}
   .cart-sidebar{width:100%;margin-top:12px}
 }
 
-
+/* Orders list responsiveness and scrolling */
 .orders-list{display:flex;flex-direction:column;gap:12px;max-height:60vh;overflow:auto;padding-right:6px}
 .order-card{padding:12px;border:1px solid #eee;border-radius:8px;background:var(--card-bg)}
 .order-card .order-header{display:flex;justify-content:space-between;align-items:center;gap:12px}
@@ -961,7 +961,8 @@ html{scrollbar-width: thin;scrollbar-color: rgb(228, 231, 231) transparent;}
 
 .index-main {
   padding-top: calc(var(--header-h) * -1);
-  
+  /* padding-top: calc(var(--header-h) + 12px);
+  padding-bottom: 60px; */
   background: linear-gradient(135deg, #f8f8f8 0%, #ffffff 100%);
 }
 
@@ -969,7 +970,7 @@ html{scrollbar-width: thin;scrollbar-color: rgb(228, 231, 231) transparent;}
   text-align: center;
   margin-bottom: 60px;
   padding: 40px 20px;
-  background:  #0d6efd; 
+  background:  #0d6efd; /*linear-gradient(130deg, var(--accent) 0%, #0d6efd 100%)*/
   border-radius: 12px;
   color: #fff;
 }
@@ -1170,7 +1171,7 @@ html{scrollbar-width: thin;scrollbar-color: rgb(228, 231, 231) transparent;}
   }
 }
 
-
+/* ========== CART PAGE STYLES ========== */
 .cart-page {
   background: var(--bg);
   min-height: calc(100vh - 100px);
@@ -1525,7 +1526,7 @@ html{scrollbar-width: thin;scrollbar-color: rgb(228, 231, 231) transparent;}
   }
 }
 
-
+/* ========== PROFILE PAGE STYLES ========== */
 .profile-page {
   background: var(--bg);
   min-height: calc(100vh - 100px);
@@ -1751,7 +1752,7 @@ html{scrollbar-width: thin;scrollbar-color: rgb(228, 231, 231) transparent;}
   color: var(--accent);
 }
 
-
+/* Orders Tab Styles */
 .orders-list {
   display: flex;
   flex-direction: column;
@@ -1884,7 +1885,7 @@ html{scrollbar-width: thin;scrollbar-color: rgb(228, 231, 231) transparent;}
   color: var(--accent);
 }
 
-
+/* Favorites Tab Styles */
 .favorites-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -1996,7 +1997,7 @@ html{scrollbar-width: thin;scrollbar-color: rgb(228, 231, 231) transparent;}
   }
 }
 
-
+/* Quantity controls for buy buttons */
 .quantity-controls {
   display: inline-flex;
   align-items: center;
@@ -2041,7 +2042,7 @@ html{scrollbar-width: thin;scrollbar-color: rgb(228, 231, 231) transparent;}
   padding: 2px 4px;
 }
 
-
+/* Page back button - consistent, pleasant and accessible */
 .page-back{
   display:inline-flex;
   align-items:center;
@@ -2058,7 +2059,7 @@ html{scrollbar-width: thin;scrollbar-color: rgb(228, 231, 231) transparent;}
 .page-back:hover{background:#fff;border-color:rgba(0,0,0,0.12);transform:translateY(-1px)}
 .page-back .icon{font-size:16px;color:var(--accent)}
 
-
+/* place back button near page title */
 .page-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
 .page-header h1{margin:0}
 
@@ -2067,7 +2068,7 @@ html{scrollbar-width: thin;scrollbar-color: rgb(228, 231, 231) transparent;}
     width: 50px;
 }
 
-
+/* Loading spinner for quantity controls and buttons */
 @keyframes spin {
     0% { transform: translate(-50%, -50%) rotate(0deg); }
     to { transform: translate(-50%, -50%) rotate(360deg); }
@@ -2080,7 +2081,7 @@ html{scrollbar-width: thin;scrollbar-color: rgb(228, 231, 231) transparent;}
     pointer-events: none;
 }
 
-
+/* Spinner for quantity controls */
 .quantity-controls.loading::before {
     content: '';
     position: absolute;
@@ -2100,7 +2101,7 @@ html{scrollbar-width: thin;scrollbar-color: rgb(228, 231, 231) transparent;}
     position: relative;
 }
 
-
+/* Spinner for buy button */
 .buy-btn.loading {
     color: transparent;
     position: relative;

@@ -150,7 +150,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
             const data = await res.json();
             if (!res.ok){ alert(data.error || 'Ошибка регистрации'); return; }
 
-            // save token and user
             localStorage.setItem('token', data.token);
             if (data.user){
                 localStorage.setItem('user_id', data.user.id);
@@ -159,7 +158,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
                 if (data.user.phone) localStorage.setItem('phone', data.user.phone);
             }
 
-            // Merge cart
             let sessionId = localStorage.getItem('session_id');
             if (sessionId){
                 try{
@@ -174,7 +172,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
                 }catch(err){ console.warn('Cart merge failed', err); }
             }
 
-            // redirect
             window.location.href = '/';
         }catch(err){ console.error(err); alert('Ошибка подключения к серверу'); }
         finally { if (submitBtn){ submitBtn.disabled = false; if (origText) submitBtn.textContent = origText; } }

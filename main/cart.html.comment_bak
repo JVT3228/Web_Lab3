@@ -79,7 +79,7 @@
     </div>
   </footer>
 
-  
+  <!-- Checkout modal -->
   <div id="checkout-modal" class="checkout-modal">
     <div class="checkout-modal-content">
       <button class="checkout-modal-close" id="checkout-close">&times;</button>
@@ -105,7 +105,7 @@
     </div>
   </div>
 
-  
+  <!-- Modal for add to cart notification -->
   <div id="add-to-cart-modal" class="checkout-modal">
     <div class="checkout-modal-content" style="max-width: 400px;">
       <button class="checkout-modal-close" id="add-to-cart-close">&times;</button>

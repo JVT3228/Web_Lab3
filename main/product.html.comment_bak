@@ -45,7 +45,7 @@
 <div class="site-main container">
     <main class="site-content">
         <div class="page-content">
-            
+            <!-- Контент будет отображен здесь -->
         </div>
     </main>
 </div>

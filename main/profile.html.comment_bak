@@ -37,7 +37,7 @@
       <h1>Личный кабинет</h1>
 
       <div class="profile-layout">
-        
+        <!-- Боковое меню -->
         <aside class="profile-menu">
           <nav>
             <button class="menu-item active" onclick="switchTab('profile')">Профиль</button>
@@ -46,9 +46,9 @@
           </nav>
         </aside>
 
-        
+        <!-- Содержимое -->
         <main class="profile-content">
-          
+          <!-- Профиль -->
           <section id="profile-tab" class="profile-tab active">
             <div class="profile-header">
               <div class="profile-avatar-section">
@@ -87,7 +87,7 @@
             </div>
           </section>
 
-          
+          <!-- Мои заказы -->
           <section id="orders-tab" class="profile-tab" style="display:none;">
             <h2>Мои заказы</h2>
             <div id="orders-list" class="orders-list"></div>
@@ -97,7 +97,7 @@
             </div>
           </section>
 
-          
+          <!-- Модальное окно детали заказа -->
           <div id="order-modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center;">
             <div style="background:#fff; border-radius:8px; padding:30px; max-width:600px; width:90%; max-height:80vh; overflow-y:auto;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
@@ -113,7 +113,7 @@
               <div style="margin-bottom:20px;">
                 <h4 style="font-size:14px; color:#777; text-transform:uppercase; margin-bottom:15px;">Товары в заказе</h4>
                 <div id="modal-order-items" style="display:flex; flex-direction:column; gap:12px;">
-                  
+                  <!-- Товары добавятся сюда -->
                 </div>
               </div>
               <div style="border-top:1px solid #e7e7e7; padding-top:20px; text-align:right;">

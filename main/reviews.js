@@ -1,4 +1,3 @@
-// Map to track open editors by review id to prevent duplicates
 const __reviewEditorMap = new Map();
 window.__reviewEditorMap = __reviewEditorMap;
 
@@ -48,13 +47,11 @@ class ReviewService {
     }
 }
 
-// Widget: render reviews and form
 async function renderReviews(container, productId) {
     const service = new ReviewService(productId);
     const token = localStorage.getItem('token');
     const reviews = await service.getReviews();
 
-    // Container for reviews
     let html = '<div class="reviews-section">';
     html += '<h4>Отзывы</h4>';
 
@@ -65,7 +62,6 @@ async function renderReviews(container, productId) {
         reviews.forEach(r => {
             const stars = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
             const isOwner = r.is_owner || (localStorage.getItem('user_id') && String(r.user_id) === String(localStorage.getItem('user_id')));
-            // prefer avatar from review payload, else use current user's avatar if owner
             const reviewAvatar = r.avatar || (isOwner ? localStorage.getItem('user_avatar') : null);
             const avatarHtml = reviewAvatar ? `<img src="${reviewAvatar}" class="review-avatar-img" alt="avatar">` : `<div class="review-avatar-fallback">${(r.username||'A').trim().charAt(0).toUpperCase()}</div>`;
             html += `
@@ -85,7 +81,6 @@ async function renderReviews(container, productId) {
         html += '</div>';
     }
 
-    // Form for new review (only for authenticated users)
     if (token) {
         html += `
             <div class="review-form">
@@ -111,15 +106,11 @@ async function renderReviews(container, productId) {
     html += '</div>';
     container.innerHTML = html;
 
-    // Attach handlers if authenticated
     if (token) {
-        // We handle submit via delegated click below to avoid attaching/removing handlers on recreated buttons
 
-        // Attach edit/delete handlers using event delegation, but avoid adding multiple listeners
         if (container._reviewsClickHandler) container.removeEventListener('click', container._reviewsClickHandler);
         const reviewClickHandler = async (ev) => {
             const el = ev.target;
-            // handle delegated submit
             if (el && el.id === 'review-submit') {
                 ev.preventDefault();
                 const commentEl = document.getElementById('review-comment');
@@ -139,7 +130,6 @@ async function renderReviews(container, productId) {
                 return;
             }
             
-            // continue to other delegated handlers
             const item = el.closest('.review-item');
             if (!item) return;
             const reviewId = item.getAttribute('data-id');
@@ -158,9 +148,7 @@ async function renderReviews(container, productId) {
             }
 
             if (el.classList.contains('review-edit')) {
-                // prevent creating multiple editors for same item using global map
                 if (__reviewEditorMap.has(reviewId)) return;
-                // replace comment with textarea
                 const commentP = item.querySelector('.review-comment');
                 const oldText = commentP ? commentP.textContent : '';
                 const editor = document.createElement('div');
@@ -170,12 +158,10 @@ async function renderReviews(container, productId) {
                 item.appendChild(editor);
                 __reviewEditorMap.set(reviewId, editor);
 
-                // set current rating if available
                 const currentStars = item.querySelector('.review-rating').textContent || '';
                 const currentRating = (currentStars.match(/★/g) || []).length || 5;
                 editor.querySelector('.edit-rating').value = currentRating;
 
-                // handlers on editor: use single listener on editor
                 editor.addEventListener('click', async (e2)=>{
                     const t = e2.target;
                     if (t.classList.contains('cancel-edit')) {

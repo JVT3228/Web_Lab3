@@ -32,33 +32,28 @@ class CartService {
     }
 }
 
-// Global function to add product to cart from anywhere on the page
 window.addToCart = async function(productId, productName, productPrice, quantity = 1) {
     const service = new CartService();
     try {
         await service.addToCart(productId, quantity);
         
-        // Show notification modal
         const modal = document.getElementById('add-to-cart-modal');
         if (modal) {
             document.getElementById('product-name').textContent = productName;
             document.getElementById('product-price').textContent = productPrice + ' ₽';
             modal.classList.add('active');
             
-            // Auto close after 3 seconds or manual close
             const closeBtn = document.getElementById('add-to-cart-close');
             const continueBtn = document.getElementById('continue-shopping');
             
             closeBtn.onclick = () => modal.classList.remove('active');
             continueBtn.onclick = () => modal.classList.remove('active');
             
-            // Close on backdrop click
             modal.onclick = (e) => {
                 if (e.target === modal) modal.classList.remove('active');
             };
         }
         
-        // Update cart counter
         if (window.updateCartCounter) updateCartCounter();
     } catch (error) {
         console.error('Error adding to cart:', error);
@@ -66,7 +61,6 @@ window.addToCart = async function(productId, productName, productPrice, quantity
     }
 };
 
-// Render cart on cart.html
 document.addEventListener('DOMContentLoaded', async ()=>{
     const service = new CartService();
     const container = document.getElementById('cart-items');
@@ -74,7 +68,6 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     const checkoutBtn = document.getElementById('checkout-btn');
     const addToCartModal = document.getElementById('add-to-cart-modal');
     
-    // Exit if cart page elements don't exist
     if (!container || !totalEl || !checkoutBtn) return;
     
     async function render(){
@@ -122,20 +115,18 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     }
 
     function attachEventHandlers(){
-        // Обработчик для кнопок +/-
         document.querySelectorAll('.btn-qty').forEach(btn=>{
             btn.addEventListener('click', async (e)=>{
                 e.preventDefault();
                 const id = btn.getAttribute('data-id');
                 const qtyInput = btn.parentNode.querySelector('.quantity');
                 let qty = parseInt(qtyInput.value) + (btn.classList.contains('btn-plus') ? 1 : -1);
-                if (qty < 1) qty = 1; // Минимально 1 для корзины (удаление через ✕)
+                if (qty < 1) qty = 1;
                 qtyInput.value = qty;
                 await updateQty(id, qty);
             });
         });
 
-        // Обработчик для input (debounced)
         let debounceTimer;
         document.querySelectorAll('.quantity').forEach(input=>{
             input.addEventListener('input', (e)=>{
@@ -149,7 +140,6 @@ document.addEventListener('DOMContentLoaded', async ()=>{
             });
         });
 
-        // Обработчик удаления
         document.querySelectorAll('.remove').forEach(btn=>{
             btn.addEventListener('click', async (e)=>{
                 e.preventDefault();
@@ -163,14 +153,13 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     async function updateQty(id, qty) {
         try {
             await service.updateQuantity(id, qty);
-            render(); // Перерендерить корзину
+            render(); 
         } catch (e) {
             console.error(e);
             alert('Ошибка обновления');
         }
     }
 
-    // Checkout
     if (checkoutBtn){
         const modal = document.getElementById('checkout-modal');
         const form = document.getElementById('checkout-form');
@@ -184,7 +173,6 @@ document.addEventListener('DOMContentLoaded', async ()=>{
                 }
                 return;
             }
-            // prefill fields
             document.getElementById('checkout-name').value = localStorage.getItem('username') || '';
             document.getElementById('checkout-phone').value = localStorage.getItem('phone') || '';
             document.getElementById('checkout-address').value = '';
@@ -196,7 +184,6 @@ document.addEventListener('DOMContentLoaded', async ()=>{
             modal.classList.remove('active'); 
         });
 
-        // Close modal on backdrop click
         modal.addEventListener('click', (e)=>{
             if (e.target === modal) {
                 modal.classList.remove('active');
@@ -231,21 +218,22 @@ document.addEventListener('DOMContentLoaded', async ()=>{
 await render();
 });
 
-// Global function to handle buy button click
 window.handleBuyButtonClick = async function(button) {
+    if (!button) return;
+    if (button.dataset.processing === '1' || button.disabled) return;
+    button.dataset.processing = '1';
+
     const productId = button.dataset.productId;
     const productName = button.dataset.productName;
     const productPrice = button.dataset.productPrice;
     
     const service = new CartService();
     try {
-        // Show loading state
         button.disabled = true;
         button.classList.add('loading');
 
         await service.addToCart(productId, 1);
 
-        // Update and re-init
         if (window.updateCartCounter) updateCartCounter();
         if (window.initBuyButtons) await initBuyButtons();
     } catch (error) {
@@ -253,17 +241,15 @@ window.handleBuyButtonClick = async function(button) {
         alert('Ошибка при добавлении товара в корзину');
         button.disabled = false;
         button.classList.remove('loading');
+    } finally {
+        try { delete button.dataset.processing; } catch(e){ button.dataset.processing = '0'; }
     }
 };
 
-// Helper to attach input change with debounce
 function attachInputHandler(input) {
-    // No-op: input handling for `.qty` is performed via delegated listener
-    // to survive DOM replacements in modal/search results.
     return;
 }
 
-// Global function to initialize buy buttons based on cart
 window.initBuyButtons = async function() {
     const service = new CartService();
     try {
@@ -274,17 +260,18 @@ window.initBuyButtons = async function() {
             itemMap[item.product_id] = { quantity: item.quantity, id: item.id };
         });
         
-        // Find all buy buttons
-        // Replace buy buttons with controls where needed
         const buyButtons = Array.from(document.querySelectorAll('.buy-btn'));
         buyButtons.forEach(button => {
             const productId = button.dataset.productId;
             if (itemMap[productId]) {
                 const item = itemMap[productId];
                 const controlsClass = button.classList.contains('buy-btn-lg') ? 'quantity-controls quantity-controls-lg' : 'quantity-controls';
-                // Insert controls WITHOUT inline handlers — we'll use delegated listeners
+                let origClass = button.getAttribute('class') || '';
+                origClass = origClass.split(/\s+/).filter(c => c && c !== 'loading' && c !== 'processing' && c !== 'disabled').join(' ');
+                const origInner = button.innerHTML || 'Купить';
+                const encodedInner = encodeURIComponent(origInner);
                 button.outerHTML = `
-                    <div class="${controlsClass}" data-item-id="${item.id}" data-product-id="${productId}" data-product-name="${button.dataset.productName}" data-product-price="${button.dataset.productPrice}">
+                    <div class="${controlsClass}" data-item-id="${item.id}" data-product-id="${productId}" data-product-name="${button.dataset.productName}" data-product-price="${button.dataset.productPrice}" data-orig-class="${origClass}" data-orig-html="${encodedInner}">
                         <button class="qty-btn" data-delta="-1">-</button>
                         <input type="number" class="qty" value="${item.quantity}" min="0">
                         <button class="qty-btn" data-delta="1">+</button>
@@ -293,16 +280,13 @@ window.initBuyButtons = async function() {
             }
         });
 
-        // Attach input handlers to all quantity inputs (newly created and existing)
         document.querySelectorAll('.quantity-controls .qty').forEach(input => attachInputHandler(input));
     } catch (error) {
         console.error('Error initializing buy buttons:', error);
     }
 };
 
-// Global function to change quantity from quantity controls
 window.changeQuantity = async function(controlsOrButton, delta) {
-    // Accept either the .quantity-controls div or a button/input within it
     let controls = controlsOrButton;
     if (controlsOrButton.closest) {
         controls = controlsOrButton.closest('.quantity-controls');
@@ -318,36 +302,30 @@ window.changeQuantity = async function(controlsOrButton, delta) {
     const qtyInput = controls.querySelector('.qty');
     let qty = parseInt(qtyInput.value, 10) + delta;
 
-    // Validate: qty must be >= 0
     if (qty < 0) qty = 0;
 
-    // Show loading state and disable controls during request
     controls.classList.add('loading');
     const controlsElements = controls.querySelectorAll('button, input');
     controlsElements.forEach(el => el.disabled = true);
 
     try {
-        if (qty <= 0) {
-            // Remove from cart
+            if (qty <= 0) {
             await service.removeFromCart(itemId);
-            // Replace with buy button (NO inline onclick — delegated handler will catch it)
-            const btnClass = controls.classList.contains('quantity-controls-lg') ? 'btn btn-primary btn-lg buy-btn buy-btn-lg w-100' : 'btn btn-primary btn-sm w-100 buy-btn';
-            controls.outerHTML = `<button class="${btnClass}" data-product-id="${productId}" data-product-name="${productName}" data-product-price="${productPrice}">Купить</button>`;
+            const savedClass = controls.dataset.origClass;
+            const savedHtml = controls.dataset.origHtml ? decodeURIComponent(controls.dataset.origHtml) : null;
+            const btnClass = savedClass || (controls.classList.contains('quantity-controls-lg') ? 'btn btn-primary btn-lg buy-btn buy-btn-lg w-100' : 'btn btn-primary btn-sm w-100 buy-btn');
+            const inner = savedHtml || 'Купить';
+            controls.outerHTML = `<button class="${btnClass}" data-product-id="${productId}" data-product-name="${productName}" data-product-price="${productPrice}">${inner}</button>`;
         } else {
-            // Update quantity
             await service.updateQuantity(itemId, qty);
-            // reflect new value in input
             const newInput = controls.querySelector('.qty');
             if (newInput) newInput.value = qty;
         }
 
-        // Update cart counter
         if (window.updateCartCounter) updateCartCounter();
         
-        // Re-init buy buttons to sync all instances
         if (window.initBuyButtons) await initBuyButtons();
         
-        // If modal is open, re-render its results to keep in sync
         if (typeof modalSearchManager !== 'undefined' && modalSearchManager.modal && modalSearchManager.modal.style.display === 'flex') {
             try { 
                 modalSearchManager.renderResults(); 
@@ -359,7 +337,6 @@ window.changeQuantity = async function(controlsOrButton, delta) {
         console.error('Error updating cart:', error);
         alert('Ошибка при обновлении корзины');
     } finally {
-        // Always remove loading state and re-enable controls
         if (controls && controls.classList) {
             controls.classList.remove('loading');
         }
@@ -370,7 +347,6 @@ window.changeQuantity = async function(controlsOrButton, delta) {
 };
 
 document.addEventListener('click', function(e){
-    // Handle quantity +/- buttons via delegation
     const qtyBtn = e.target.closest ? e.target.closest('.qty-btn') : null;
     if (qtyBtn) {
         e.preventDefault();
@@ -379,7 +355,6 @@ document.addEventListener('click', function(e){
         return;
     }
 
-    // Handle buy buttons via delegation (NO inline onclick anymore - all through delegation)
     const btn = e.target.closest ? e.target.closest('.buy-btn') : null;
     if (btn) {
         e.preventDefault();
@@ -390,24 +365,20 @@ document.addEventListener('click', function(e){
     }
 });
 
-// Debounce timers for delegated input handling
 const _qtyInputTimers = new WeakMap();
 
-// Delegated input handler for .qty with per-element debounce (works across DOM replacements)
 document.addEventListener('input', function(e){
     const el = e.target;
     if (!el || !el.classList || !el.classList.contains('qty')) return;
     
     const controls = el.closest('.quantity-controls');
-    if (!controls) return; // not inside a quantity-controls div
+    if (!controls) return;
     
-    // clear existing timer for this controls block
     const prev = _qtyInputTimers.get(controls);
     if (prev) clearTimeout(prev);
     
     const t = setTimeout(()=>{
         try { 
-            // Call changeQuantity with the controls element, delta=0 means use the input value
             changeQuantity(controls, 0); 
         } catch(err){ console.error(err); }
         _qtyInputTimers.delete(controls);

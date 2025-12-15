@@ -1,4 +1,4 @@
-// In-page search: find and highlight matches within site-main
+
 (function(){
   function escapeRegExp(text){
     return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -19,7 +19,7 @@
     const regex = new RegExp(escapeRegExp(text), 'gi');
     let count=0;
     function walk(node){
-      if (node.nodeType===3){ // text
+      if (node.nodeType===3){
         const m = node.data.match(regex);
         if (m){
           const frag = document.createDocumentFragment();
@@ -60,22 +60,18 @@
       return;
     }
     const found = highlightMatches(container, q);
-    // scroll to first match
     const first = container.querySelector('mark.search-highlight');
     if (first){
       first.scrollIntoView({behavior:'smooth', block:'center'});
-      // briefly flash
       first.style.background = 'var(--accent)';
       setTimeout(()=>first.style.background='', 1200);
     } else {
-      // no results
       alert('Ничего не найдено на странице. Попробуйте другое слово.');
     }
   }
 
   document.addEventListener('DOMContentLoaded', ()=>{
     document.querySelectorAll('form.header-search').forEach(f=>f.addEventListener('submit', searchHandler));
-    // Register form password confirmation
     const regForm = document.querySelector('form.contacts-form');
     if (regForm && regForm.querySelector('#confirmPassword')){
       regForm.addEventListener('submit', function(e){
@@ -92,24 +88,17 @@
   });
 })();
 
-// Инициализация бегущих строк (ticker) — делаем содержимое достаточно длинным
-// чтобы бесшовно прокручиваться от края до края экрана, независимо от ширины.
 (function(){
   function initTicker(track){
     if (!track) return;
-    // сохранённый оригинальный набор элементов (до клонирования)
     if (!track.dataset.orig) track.dataset.orig = track.innerHTML;
-    // восстановить из исходного
     track.innerHTML = track.dataset.orig;
-    // повторять исходный блок, пока ширина не превысит ширину окна
     let safety = 0;
     while (track.scrollWidth < window.innerWidth && safety < 12){
       track.innerHTML += track.dataset.orig;
       safety++;
     }
-    // повторим ещё раз весь трек чтобы получить 2 одинаковые половины
     track.innerHTML = track.innerHTML + track.innerHTML;
-    // подстроить длительность анимации под ширину контента (примерное значение)
     const duration = Math.max(20, Math.floor(track.scrollWidth / 60));
     track.style.animationDuration = duration + 's';
   }
@@ -118,14 +107,11 @@
     document.querySelectorAll('.carousel-ticker .ticker-track').forEach(track=>initTicker(track));
   }
 
-  // инициализируем сразу и после ресайза (debounced)
   let resizeTimeout;
   window.addEventListener('resize', ()=>{
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(()=>{
-      // сбросим и пересоздадим
       document.querySelectorAll('.carousel-ticker .ticker-track').forEach(track=>{
-        // восстановим оригинал и пересчитаем
         if (track.dataset.orig) track.innerHTML = track.dataset.orig;
       });
       initAllTickers();
@@ -135,7 +121,6 @@
   document.addEventListener('DOMContentLoaded', ()=>initAllTickers());
 })();
 
-// Cart counter helper: обновляет/создаёт элемент с классом .cart-count в header
 async function updateCartCounter(){
   try{
     const token = localStorage.getItem('token');
@@ -146,9 +131,8 @@ async function updateCartCounter(){
     const res = await fetch(url, { headers });
     if (!res.ok) return;
     const data = await res.json();
-    const totalItems = data.total_items || Math.round((data.total || 0) / 1); // fallback
+    const totalItems = data.total_items || Math.round((data.total || 0) / 1); 
 
-    // find or create counter element (placed inside .header-cart)
     let el = document.querySelector('.header-actions .header-cart .cart-count') || document.querySelector('.header-actions .cart-count');
     if (!el){
       const headerActions = document.querySelector('.header-actions');
@@ -156,7 +140,6 @@ async function updateCartCounter(){
       el = document.createElement('span');
       el.className = 'cart-count badge bg-danger ms-2';
       el.style.display = 'none';
-      // prefer placing inside header-cart
       const cartLink = headerActions.querySelector('.header-cart');
       if (cartLink) cartLink.appendChild(el); else headerActions.appendChild(el);
     }
@@ -167,14 +150,12 @@ async function updateCartCounter(){
       el.style.display = 'none';
     }
 
-    // removed header total display per UX request
   }catch(err){ console.warn('updateCartCounter error', err); }
 }
 
 document.addEventListener('DOMContentLoaded', ()=>{
   updateCartCounter();
   
-  // Update auth buttons based on token
   const token = localStorage.getItem('token');
   const headerLogin = document.querySelector('.header-login');
   const headerProfile = document.querySelector('.header-profile');
@@ -194,7 +175,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }
 });
 
-// Render/update header avatar (reads from localStorage.user_avatar)
 function renderHeaderAvatar(){
   const headerProfile = document.querySelector('.header-profile');
   if (!headerProfile) return;
@@ -215,18 +195,14 @@ function renderHeaderAvatar(){
 }
 window.renderHeaderAvatar = renderHeaderAvatar;
 
-// update avatar when changed in other tabs
 window.addEventListener('storage', (ev)=>{
   if (ev.key === 'user_avatar') renderHeaderAvatar();
 });
 
-// call once on load (if DOMContentLoaded already fired earlier, ensure avatar is rendered)
 if (document.readyState === 'complete' || document.readyState === 'interactive') setTimeout(renderHeaderAvatar, 20);
 
-// --- Admin tools (frontend) ----------------------------------
-// Admin panel is hidden by default. To open: press Ctrl+Alt+A or click site logo 5 times quickly.
 (function(){
-  const ADMIN_KEY = 'is_admin'; // set localStorage.is_admin='1' for testing
+  const ADMIN_KEY = 'is_admin';
   let logoClicks = 0; let logoTimer = null;
 
   function buildAdminUI(){
@@ -267,7 +243,6 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
     `;
     document.body.appendChild(root);
 
-    // wire button
     const toggle = document.getElementById('admin-toggle-btn');
     toggle.addEventListener('click', ()=>{
       const modal = document.getElementById('adminModal');
@@ -276,7 +251,6 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
       loadProductList();
     });
 
-    // add form handler
     document.addEventListener('submit', async (ev)=>{
       if (ev.target && ev.target.id === 'admin-add-form'){
         ev.preventDefault();
@@ -307,22 +281,18 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
     }catch(e){ list.innerHTML = '<p>Error loading</p>'; }
   }
 
-  // show/hide admin toggle depending on localStorage or secret trigger
   function revealAdmin(){
     buildAdminUI();
     const toggle = document.getElementById('admin-toggle-btn');
     if (toggle) toggle.style.display = 'inline-block';
   }
 
-  // keyboard shortcut
   window.addEventListener('keydown', (ev)=>{
     if (ev.ctrlKey && ev.altKey && ev.key.toLowerCase() === 'a'){
-      // only reveal if user flagged as admin in localStorage OR confirm
       if (localStorage.getItem(ADMIN_KEY) === '1' || confirm('Открыть панель админа?')) revealAdmin();
     }
   });
 
-  // logo click 5 times
   const brandLogo = document.querySelector('.site-header .brand');
   if (brandLogo){
     brandLogo.addEventListener('click', ()=>{
@@ -339,11 +309,10 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 
 
 
-// Cart page script
 document.addEventListener('DOMContentLoaded', async ()=>{
     const cartContainer = document.getElementById('cart-container');
     const checkoutBtn = document.getElementById('checkout-btn');
-    if (!cartContainer) return; // not on cart page
+    if (!cartContainer) return; 
 
     class CartService { 
     constructor() {
@@ -435,7 +404,6 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     await renderCart();
 });
 
-// Modal Search — открывает поиск как модальное окно поверх страницы
 class ModalSearchManager {
     constructor() {
         this.modal = null;
@@ -453,13 +421,11 @@ class ModalSearchManager {
     }
 
     init() {
-        // Create modal HTML if not exists
         if (!document.getElementById('search-modal')) {
             this.createModal();
         }
         this.modal = document.getElementById('search-modal');
         
-        // Bind events
         const trigger = document.getElementById('header-search-input');
         if (trigger) {
             trigger.addEventListener('focus', () => this.open());
@@ -470,12 +436,10 @@ class ModalSearchManager {
             closeBtn.addEventListener('click', () => this.close());
         }
         
-        // Close on outside click
         this.modal?.addEventListener('click', (e) => {
             if (e.target === this.modal) this.close();
         });
 
-        // Load filters
         this.loadFilters();
     }
 
@@ -616,7 +580,6 @@ class ModalSearchManager {
           </div>
         `).join('');
         
-        // Initialize buy buttons for cart items
         if (window.initBuyButtons) initBuyButtons();
     }
 
