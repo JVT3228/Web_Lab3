@@ -5,6 +5,7 @@ from flask_jwt_extended import JWTManager ,create_access_token ,jwt_required ,ge
 from flask import send_file ,Response ,abort 
 import psycopg 
 from psycopg import sql 
+from psycopg_pool import ConnectionPool 
 import re 
 import os 
 import json 
@@ -23,33 +24,20 @@ CORS (app ,supports_credentials =True )
 bcrypt =Bcrypt (app )
 jwt =JWTManager (app )
 
-def get_db_connection ():
-    """Подключение к PostgreSQL используя psycopg3"""
-    conn =psycopg .connect (
-    host =os .environ .get ('DB_HOST','localhost'),
-    dbname =os .environ .get ('DB_NAME','befree_shop'),
-    user =os .environ .get ('DB_USER','postgres'),
-    password =os .environ .get ('DB_PASSWORD','password'),
-    port =int (os .environ .get ('DB_PORT',5432 ))
-    )
-    conn .row_factory =psycopg .rows .dict_row 
-
-
-    try :
-        cur =conn .cursor ()
-        cur .execute ("""
-            ALTER TABLE order_items 
-            ADD COLUMN IF NOT EXISTS product_image VARCHAR(255)
-        """)
-        conn .commit ()
-        cur .close ()
-    except :
-        pass 
-
-    return conn 
+pool = ConnectionPool(
+    conninfo=(
+        f"host={os.environ.get('DB_HOST', 'localhost')} "
+        f"dbname={os.environ.get('DB_NAME', 'befree_shop')} "
+        f"user={os.environ.get('DB_USER', 'postgres')} "
+        f"password={os.environ.get('DB_PASSWORD', 'postgres')} "
+        f"port={os.environ.get('DB_PORT', '5432')}"
+    ),
+    min_size=2,
+    max_size=20,
+    timeout=30,
+)
 
 def get_user_id_from_token (token ):
-    """Decode JWT token and extract user_id"""
     try :
         if not token :
             return None 
@@ -129,7 +117,6 @@ def image_to_data_uri (img_val ):
 
 
 def normalize_product_images (product ):
-    """Ensure product['images'] is a list of data-URIs or safe URLs/paths."""
     if not product :
         return product 
     imgs =product .get ('images')
@@ -157,25 +144,24 @@ def normalize_product_images (product ):
 
 @app .route ('/images/product/<int:product_id>',methods =['GET'])
 def serve_product_image (product_id ):
-    """Serve image binary for product (first image) from DB if present, otherwise 404."""
     try :
-        conn =get_db_connection ()
-        cur =conn .cursor ()
-        cur .execute ("SELECT image_bytes, image_mime FROM products WHERE id = %s",(product_id ,))
-        r =cur .fetchone ()
-        cur .close ();conn .close ()
-        if not r :
-            return abort (404 )
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
+            cur .execute ("SELECT image_bytes, image_mime FROM products WHERE id = %s",(product_id ,))
+            r =cur .fetchone ()
+            cur .close ()
+            if not r :
+                return abort (404 )
 
-        if isinstance (r ,dict ):
-            data =r .get ('image_bytes')
-            mime =r .get ('image_mime')or 'image/jpeg'
-        else :
-            data =r [0 ]
-            mime =r [1 ]or 'image/jpeg'
-        if not data :
-            return abort (404 )
-        return Response (data ,mimetype =mime )
+            if isinstance (r ,dict ):
+                data =r .get ('image_bytes')
+                mime =r .get ('image_mime')or 'image/jpeg'
+            else :
+                data =r [0 ]
+                mime =r [1 ]or 'image/jpeg'
+            if not data :
+                return abort (404 )
+            return Response (data ,mimetype =mime )
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 
@@ -186,22 +172,21 @@ def serve_static_image (filename ):
     Filename should be the path relative to `main/`, e.g. `img/logo.png` or `card-img/longsliv11.jpg`.
     """
     try :
-        conn =get_db_connection ()
-        cur =conn .cursor ()
-        cur .execute ("SELECT data, mime FROM static_images WHERE name = %s",(filename ,))
-        r =cur .fetchone ()
-        cur .close ();conn .close ()
-        if not r :
-            return abort (404 )
-        if isinstance (r ,dict ):
-            data =r .get ('data')
-            mime =r .get ('mime')or 'image/jpeg'
-        else :
-            data =r [0 ]
-            mime =r [1 ]or 'image/jpeg'
-        if not data :
-            return abort (404 )
-        return Response (data ,mimetype =mime )
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
+            cur .execute ("SELECT data, mime FROM static_images WHERE name = %s",(filename ,))
+            r =cur .fetchone ()
+            if not r :
+                return abort (404 )
+            if isinstance (r ,dict ):
+                data =r .get ('data')
+                mime =r .get ('mime')or 'image/jpeg'
+            else :
+                data =r [0 ]
+                mime =r [1 ]or 'image/jpeg'
+            if not data :
+                return abort (404 )
+            return Response (data ,mimetype =mime )
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 
@@ -209,22 +194,21 @@ def serve_static_image (filename ):
 @app .route ('/api/users/<int:user_id>/avatar',methods =['GET'])
 def get_user_avatar (user_id ):
     try :
-        conn =get_db_connection ()
-        cur =conn .cursor ()
-        cur .execute ("SELECT avatar, avatar_mime FROM users WHERE id = %s",(user_id ,))
-        r =cur .fetchone ()
-        cur .close ();conn .close ()
-        if not r :
-            return abort (404 )
-        if isinstance (r ,dict ):
-            data =r .get ('avatar')
-            mime =r .get ('avatar_mime')or 'image/jpeg'
-        else :
-            data =r [0 ]
-            mime =r [1 ]or 'image/jpeg'
-        if not data :
-            return abort (404 )
-        return Response (data ,mimetype =mime )
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
+            cur .execute ("SELECT avatar, avatar_mime FROM users WHERE id = %s",(user_id ,))
+            r =cur .fetchone ()
+            if not r :
+                return abort (404 )
+            if isinstance (r ,dict ):
+                data =r .get ('avatar')
+                mime =r .get ('avatar_mime')or 'image/jpeg'
+            else :
+                data =r [0 ]
+                mime =r [1 ]or 'image/jpeg'
+            if not data :
+                return abort (404 )
+            return Response (data ,mimetype =mime )
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 
@@ -259,12 +243,11 @@ def upload_my_avatar ():
         if not file :
             return jsonify ({'error':'No avatar provided'}),400 
 
-        conn =get_db_connection ()
-        cur =conn .cursor ()
-        cur .execute ("UPDATE users SET avatar = %s, avatar_mime = %s WHERE id = %s",(psycopg .Binary (file ),mime ,user_id ))
-        conn .commit ()
-        cur .close ();conn .close ()
-        return jsonify ({'message':'Avatar uploaded'})
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
+            cur .execute ("UPDATE users SET avatar = %s, avatar_mime = %s WHERE id = %s",(psycopg .Binary (file ),mime ,user_id ))
+            conn .commit ()
+            return jsonify ({'message':'Avatar uploaded'})
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 
@@ -279,12 +262,11 @@ def delete_my_avatar ():
     if not user_id :
         return jsonify ({'error':'Not authenticated'}),401 
     try :
-        conn =get_db_connection ()
-        cur =conn .cursor ()
-        cur .execute ("UPDATE users SET avatar = NULL, avatar_mime = NULL WHERE id = %s",(user_id ,))
-        conn .commit ()
-        cur .close ();conn .close ()
-        return jsonify ({'message':'Avatar deleted'})
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
+            cur .execute ("UPDATE users SET avatar = NULL, avatar_mime = NULL WHERE id = %s",(user_id ,))
+            conn .commit ()
+            return jsonify ({'message':'Avatar deleted'})
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 
@@ -323,31 +305,27 @@ def register ():
     password_hash =bcrypt .generate_password_hash (password ).decode ('utf-8')
 
     try :
-        conn =get_db_connection ()
-        cur =conn .cursor ()
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
 
-        cur .execute ("""
-            SELECT id FROM users WHERE email = %s OR phone_clean = %s OR username = %s
-        """,(data ['email'],phone_clean ,data ['username']))
+            cur .execute ("""
+                SELECT id FROM users WHERE email = %s OR phone_clean = %s OR username = %s
+            """,(data ['email'],phone_clean ,data ['username']))
 
-        if cur .fetchone ():
-            cur .close ()
-            conn .close ()
-            return jsonify ({'error':'User already exists'}),400 
+            if cur .fetchone ():
+                return jsonify ({'error':'User already exists'}),400 
 
-        cur .execute ("""
-            INSERT INTO users (username, email, phone, phone_clean, password_hash)
-            VALUES (%s, %s, %s, %s, %s)
-            RETURNING id, username, email, phone
-        """,(data ['username'],data ['email'],data ['phone'],phone_clean ,password_hash ))
+            cur .execute ("""
+                INSERT INTO users (username, email, phone, phone_clean, password_hash)
+                VALUES (%s, %s, %s, %s, %s)
+                RETURNING id, username, email, phone
+            """,(data ['username'],data ['email'],data ['phone'],phone_clean ,password_hash ))
 
-        user =cur .fetchone ()
-        conn .commit ()
-        cur .close ()
-        conn .close ()
+            user =cur .fetchone ()
+            conn .commit ()
 
-        access_token =create_access_token (identity =str (user ['id']))
-        return jsonify ({'message':'User created','user':user ,'token':access_token }),201 
+            access_token =create_access_token (identity =str (user ['id']))
+            return jsonify ({'message':'User created','user':user ,'token':access_token }),201 
 
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
@@ -359,27 +337,25 @@ def login ():
         return jsonify ({'error':'Missing credentials'}),400 
 
     try :
-        conn =get_db_connection ()
-        cur =conn .cursor ()
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
 
-        cur .execute ("""
-            SELECT id, username, email, phone, phone_clean, password_hash
-            FROM users WHERE email = %s OR phone = %s OR phone_clean = %s
-        """,(data ['login'],data ['login'],data ['login']))
+            cur .execute ("""
+                SELECT id, username, email, phone, phone_clean, password_hash
+                FROM users WHERE email = %s OR phone = %s OR phone_clean = %s
+            """,(data ['login'],data ['login'],data ['login']))
 
-        user =cur .fetchone ()
-        cur .close ()
-        conn .close ()
+            user =cur .fetchone ()
 
-        if not user :
-            return jsonify ({'error':'User not found'}),404 
+            if not user :
+                return jsonify ({'error':'User not found'}),404 
 
-        if not bcrypt .check_password_hash (user ['password_hash'],data ['password']):
-            return jsonify ({'error':'Invalid password'}),401 
+            if not bcrypt .check_password_hash (user ['password_hash'],data ['password']):
+                return jsonify ({'error':'Invalid password'}),401 
 
-        access_token =create_access_token (identity =str (user ['id']))
-        user .pop ('password_hash',None )
-        return jsonify ({'message':'Login successful','user':user ,'token':access_token })
+            access_token =create_access_token (identity =str (user ['id']))
+            user .pop ('password_hash',None )
+            return jsonify ({'message':'Login successful','user':user ,'token':access_token })
 
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
@@ -397,80 +373,72 @@ def me ():
         return jsonify ({'error':'Not authenticated'}),401 
 
     try :
-        conn =get_db_connection ()
-        cur =conn .cursor ()
-        cur .execute ("SELECT id, username, email, phone, created_at FROM users WHERE id = %s",(user_id ,))
-        user =cur .fetchone ()
-        cur .close ()
-        conn .close ()
-        if not user :
-            return jsonify ({}),404 
-        return jsonify (dict (user ))
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
+            cur .execute ("SELECT id, username, email, phone, created_at FROM users WHERE id = %s",(user_id ,))
+            user =cur .fetchone ()
+            if not user :
+                return jsonify ({}),404 
+            return jsonify (dict (user ))
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 
 @app .route ('/api/products',methods =['GET'])
 def get_products ():
     try :
-        conn =get_db_connection ()
-        cur =conn .cursor ()
-        cur .execute ("SELECT * FROM products WHERE is_available = TRUE ORDER BY id")
-        products =[dict (row )for row in cur .fetchall ()]
-        for p in products :
-            if p .get ('images')and isinstance (p ['images'],str ):
-                try :
-                    p ['images']=json .loads (p ['images'])
-                except Exception :
-                    p ['images']=[]
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
+            cur .execute ("SELECT * FROM products WHERE is_available = TRUE ORDER BY id")
+            products =[dict (row )for row in cur .fetchall ()]
+            for p in products :
+                if p .get ('images')and isinstance (p ['images'],str ):
+                    try :
+                        p ['images']=json .loads (p ['images'])
+                    except Exception :
+                        p ['images']=[]
 
-            normalize_product_images (p )
+                normalize_product_images (p )
 
-            if 'image_bytes'in p :
-                p .pop ('image_bytes',None )
-            if 'image_mime'in p :
-                p .pop ('image_mime',None )
-        cur .close ()
-        conn .close ()
-        return jsonify (products )
+                if 'image_bytes'in p :
+                    p .pop ('image_bytes',None )
+                if 'image_mime'in p :
+                    p .pop ('image_mime',None )
+            return jsonify (products )
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 
 @app .route ('/api/products/<int:product_id>',methods =['GET'])
 def get_product (product_id ):
     try :
-        conn =get_db_connection ()
-        cur =conn .cursor ()
-        cur .execute ("SELECT * FROM products WHERE id = %s",(product_id ,))
-        p =cur .fetchone ()
-        cur .close ()
-        conn .close ()
-        if not p :
-            return jsonify ({'error':'Not found'}),404 
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
+            cur .execute ("SELECT * FROM products WHERE id = %s",(product_id ,))
+            p =cur .fetchone ()
+            if not p :
+                return jsonify ({'error':'Not found'}),404 
 
-        normalize_product_images (p )
+            normalize_product_images (p )
 
-        if isinstance (p ,dict ):
-            p .pop ('image_bytes',None )
-            p .pop ('image_mime',None )
-        return jsonify (p )
+            if isinstance (p ,dict ):
+                p .pop ('image_bytes',None )
+                p .pop ('image_mime',None )
+            return jsonify (p )
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 
 @app .route ('/api/products/category/<category>',methods =['GET'])
 def get_products_by_category (category ):
     try :
-        conn =get_db_connection ()
-        cur =conn .cursor ()
-        cur .execute ("SELECT * FROM products WHERE category = %s AND is_available = TRUE ORDER BY id",(category ,))
-        products =[dict (row )for row in cur .fetchall ()]
-        cur .close ()
-        conn .close ()
-        for p in products :
-            normalize_product_images (p )
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
+            cur .execute ("SELECT * FROM products WHERE category = %s AND is_available = TRUE ORDER BY id",(category ,))
+            products =[dict (row )for row in cur .fetchall ()]
+            for p in products :
+                normalize_product_images (p )
 
-            p .pop ('image_bytes',None )
-            p .pop ('image_mime',None )
-        return jsonify (products )
+                p .pop ('image_bytes',None )
+                p .pop ('image_mime',None )
+            return jsonify (products )
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 
@@ -485,45 +453,43 @@ def get_cart ():
             user_id =get_user_id_from_token (token )
 
         session_id =request .args .get ('session_id')
-        conn =get_db_connection ()
-        cur =conn .cursor ()
-        if user_id :
-            cur .execute ("""
-                SELECT c.id, c.user_id, c.product_id, c.quantity, p.name, p.price, p.images
-                FROM cart c JOIN products p ON c.product_id = p.id
-                WHERE c.user_id = %s
-            """,(user_id ,))
-        elif session_id :
-            cur .execute ("""
-                SELECT c.id, c.session_id, c.product_id, c.quantity, p.name, p.price, p.images
-                FROM cart c JOIN products p ON c.product_id = p.id
-                WHERE c.session_id = %s AND c.user_id IS NULL
-            """,(session_id ,))
-        else :
-            return jsonify ([])
-
-        items =[dict (row )for row in cur .fetchall ()]
-        total =0.0 
-        for it in items :
-            if it .get ('images')and isinstance (it ['images'],str ):
-                try :
-                    imgs =json .loads (it ['images'])
-                except Exception :
-                    imgs =[]
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
+            if user_id :
+                cur .execute ("""
+                    SELECT c.id, c.user_id, c.product_id, c.quantity, p.name, p.price, p.images
+                    FROM cart c JOIN products p ON c.product_id = p.id
+                    WHERE c.user_id = %s
+                """,(user_id ,))
+            elif session_id :
+                cur .execute ("""
+                    SELECT c.id, c.session_id, c.product_id, c.quantity, p.name, p.price, p.images
+                    FROM cart c JOIN products p ON c.product_id = p.id
+                    WHERE c.session_id = %s AND c.user_id IS NULL
+                """,(session_id ,))
             else :
-                imgs =it .get ('images')or []
-            it ['image']=imgs [0 ]if imgs else None 
-            it ['subtotal']=float (it ['price'])*int (it ['quantity'])
-            total +=it ['subtotal']
+                return jsonify ([])
+
+            items =[dict (row )for row in cur .fetchall ()]
+            total =0.0 
+            for it in items :
+                if it .get ('images')and isinstance (it ['images'],str ):
+                    try :
+                        imgs =json .loads (it ['images'])
+                    except Exception :
+                        imgs =[]
+                else :
+                    imgs =it .get ('images')or []
+                it ['image']=imgs [0 ]if imgs else None 
+                it ['subtotal']=float (it ['price'])*int (it ['quantity'])
+                total +=it ['subtotal']
 
 
-            try :
-                it ['image']=image_to_data_uri (it .get ('image'))
-            except Exception :
-                pass 
-        cur .close ()
-        conn .close ()
-        return jsonify ({'items':items ,'total':total ,'total_items':int (total )if total %1 ==0 else len (items )})
+                try :
+                    it ['image']=image_to_data_uri (it .get ('image'))
+                except Exception :
+                    pass 
+            return jsonify ({'items':items ,'total':total ,'total_items':int (total )if total %1 ==0 else len (items )})
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 
@@ -544,29 +510,27 @@ def add_to_cart ():
         return jsonify ({'error':'product_id required'}),400 
 
     try :
-        conn =get_db_connection ()
-        cur =conn .cursor ()
-        if user_id :
-            cur .execute ("SELECT id, quantity FROM cart WHERE user_id = %s AND product_id = %s",(user_id ,product_id ))
-            r =cur .fetchone ()
-            if r :
-                cur .execute ("UPDATE cart SET quantity = quantity + %s WHERE user_id = %s AND product_id = %s",(quantity ,user_id ,product_id ))
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
+            if user_id :
+                cur .execute ("SELECT id, quantity FROM cart WHERE user_id = %s AND product_id = %s",(user_id ,product_id ))
+                r =cur .fetchone ()
+                if r :
+                    cur .execute ("UPDATE cart SET quantity = quantity + %s WHERE user_id = %s AND product_id = %s",(quantity ,user_id ,product_id ))
+                else :
+                    cur .execute ("INSERT INTO cart (user_id, product_id, quantity) VALUES (%s, %s, %s)",(user_id ,product_id ,quantity ))
             else :
-                cur .execute ("INSERT INTO cart (user_id, product_id, quantity) VALUES (%s, %s, %s)",(user_id ,product_id ,quantity ))
-        else :
-            if not session_id :
-                return jsonify ({'error':'session_id required for guest cart'}),400 
-            cur .execute ("SELECT id, quantity FROM cart WHERE session_id = %s AND user_id IS NULL AND product_id = %s",(session_id ,product_id ))
-            r =cur .fetchone ()
-            if r :
-                cur .execute ("UPDATE cart SET quantity = quantity + %s WHERE session_id = %s AND product_id = %s",(quantity ,session_id ,product_id ))
-            else :
-                cur .execute ("INSERT INTO cart (session_id, product_id, quantity) VALUES (%s, %s, %s)",(session_id ,product_id ,quantity ))
+                if not session_id :
+                    return jsonify ({'error':'session_id required for guest cart'}),400 
+                cur .execute ("SELECT id, quantity FROM cart WHERE session_id = %s AND user_id IS NULL AND product_id = %s",(session_id ,product_id ))
+                r =cur .fetchone ()
+                if r :
+                    cur .execute ("UPDATE cart SET quantity = quantity + %s WHERE session_id = %s AND product_id = %s",(quantity ,session_id ,product_id ))
+                else :
+                    cur .execute ("INSERT INTO cart (session_id, product_id, quantity) VALUES (%s, %s, %s)",(session_id ,product_id ,quantity ))
 
-        conn .commit ()
-        cur .close ()
-        conn .close ()
-        return jsonify ({'message':'Added to cart'})
+            conn .commit ()
+            return jsonify ({'message':'Added to cart'})
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 
@@ -577,26 +541,22 @@ def update_cart (item_id ):
     if qty <=0 :
         return jsonify ({'error':'Quantity must be > 0'}),400 
     try :
-        conn =get_db_connection ()
-        cur =conn .cursor ()
-        cur .execute ("UPDATE cart SET quantity = %s WHERE id = %s",(qty ,item_id ))
-        conn .commit ()
-        cur .close ()
-        conn .close ()
-        return jsonify ({'message':'Updated'})
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
+            cur .execute ("UPDATE cart SET quantity = %s WHERE id = %s",(qty ,item_id ))
+            conn .commit ()
+            return jsonify ({'message':'Updated'})
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 
 @app .route ('/api/cart/remove/<int:item_id>',methods =['DELETE'])
 def remove_cart (item_id ):
     try :
-        conn =get_db_connection ()
-        cur =conn .cursor ()
-        cur .execute ("DELETE FROM cart WHERE id = %s",(item_id ,))
-        conn .commit ()
-        cur .close ()
-        conn .close ()
-        return jsonify ({'message':'Removed'})
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
+            cur .execute ("DELETE FROM cart WHERE id = %s",(item_id ,))
+            conn .commit ()
+            return jsonify ({'message':'Removed'})
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 
@@ -612,34 +572,30 @@ def cart_total ():
             token =auth_header [7 :]
             user_id =get_user_id_from_token (token )
         session_id =request .args .get ('session_id')
-        conn =get_db_connection ()
-        cur =conn .cursor ()
-        if user_id :
-            cur .execute ("SELECT COALESCE(SUM(p.price * c.quantity),0) AS total, COALESCE(SUM(c.quantity),0) AS total_items FROM cart c JOIN products p ON c.product_id = p.id WHERE c.user_id = %s",(user_id ,))
-        elif session_id :
-            cur .execute ("SELECT COALESCE(SUM(p.price * c.quantity),0) AS total, COALESCE(SUM(c.quantity),0) AS total_items FROM cart c JOIN products p ON c.product_id = p.id WHERE c.session_id = %s AND c.user_id IS NULL",(session_id ,))
-        else :
-            cur .close ()
-            conn .close ()
-            return jsonify ({'total':0.0 ,'total_items':0 })
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
+            if user_id :
+                cur .execute ("SELECT COALESCE(SUM(p.price * c.quantity),0) AS total, COALESCE(SUM(c.quantity),0) AS total_items FROM cart c JOIN products p ON c.product_id = p.id WHERE c.user_id = %s",(user_id ,))
+            elif session_id :
+                cur .execute ("SELECT COALESCE(SUM(p.price * c.quantity),0) AS total, COALESCE(SUM(c.quantity),0) AS total_items FROM cart c JOIN products p ON c.product_id = p.id WHERE c.session_id = %s AND c.user_id IS NULL",(session_id ,))
+            else :
+                return jsonify ({'total':0.0 ,'total_items':0 })
 
-        r =cur .fetchone ()
+            r =cur .fetchone ()
 
-        if r :
-            try :
-                row =dict (r )
-                total =float (row .get ('total',0 )or 0 )
-                total_items =int (row .get ('total_items',0 )or 0 )
-            except Exception :
+            if r :
+                try :
+                    row =dict (r )
+                    total =float (row .get ('total',0 )or 0 )
+                    total_items =int (row .get ('total_items',0 )or 0 )
+                except Exception :
 
-                total =float (r [0 ])if r [0 ]is not None else 0.0 
-                total_items =int (r [1 ])if r [1 ]is not None else 0 
-        else :
-            total =0.0 
-            total_items =0 
-        cur .close ()
-        conn .close ()
-        return jsonify ({'total':total ,'total_items':total_items })
+                    total =float (r [0 ])if r [0 ]is not None else 0.0 
+                    total_items =int (r [1 ])if r [1 ]is not None else 0 
+            else :
+                total =0.0 
+                total_items =0 
+            return jsonify ({'total':total ,'total_items':total_items })
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 
@@ -661,28 +617,26 @@ def merge_cart ():
     if not session_id :
         return jsonify ({'error':'session_id required'}),400 
     try :
-        conn =get_db_connection ()
-        cur =conn .cursor ()
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
 
 
-        cur .execute ("SELECT product_id, quantity FROM cart WHERE session_id = %s AND user_id IS NULL",(session_id ,))
-        session_items =[dict (row )for row in cur .fetchall ()]
+            cur .execute ("SELECT product_id, quantity FROM cart WHERE session_id = %s AND user_id IS NULL",(session_id ,))
+            session_items =[dict (row )for row in cur .fetchall ()]
 
-        for pid ,qty in session_items :
+            for pid ,qty in session_items :
 
-            cur .execute ("SELECT id FROM cart WHERE user_id = %s AND product_id = %s",(user_id ,pid ))
-            existing =cur .fetchone ()
-            if existing :
-                cur .execute ("UPDATE cart SET quantity = quantity + %s WHERE user_id = %s AND product_id = %s",(qty ,user_id ,pid ))
-            else :
-                cur .execute ("INSERT INTO cart (user_id, product_id, quantity) VALUES (%s, %s, %s)",(user_id ,pid ,qty ))
+                cur .execute ("SELECT id FROM cart WHERE user_id = %s AND product_id = %s",(user_id ,pid ))
+                existing =cur .fetchone ()
+                if existing :
+                    cur .execute ("UPDATE cart SET quantity = quantity + %s WHERE user_id = %s AND product_id = %s",(qty ,user_id ,pid ))
+                else :
+                    cur .execute ("INSERT INTO cart (user_id, product_id, quantity) VALUES (%s, %s, %s)",(user_id ,pid ,qty ))
 
 
-        cur .execute ("DELETE FROM cart WHERE session_id = %s AND user_id IS NULL",(session_id ,))
-        conn .commit ()
-        cur .close ()
-        conn .close ()
-        return jsonify ({'message':'Cart merged'})
+            cur .execute ("DELETE FROM cart WHERE session_id = %s AND user_id IS NULL",(session_id ,))
+            conn .commit ()
+            return jsonify ({'message':'Cart merged'})
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 
@@ -710,53 +664,50 @@ def create_order ():
         return jsonify ({'error':'Customer name and phone required'}),400 
 
     try :
-        conn =get_db_connection ()
-        cur =conn .cursor ()
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
 
 
-        cur .execute ("SELECT c.product_id, c.quantity, p.name, p.price, p.image_url FROM cart c JOIN products p ON c.product_id = p.id WHERE c.user_id = %s",(user_id ,))
-        items =[dict (row )for row in cur .fetchall ()]
-        if not items :
-            cur .close ();conn .close ();
-            return jsonify ({'error':'Cart is empty'}),400 
+            cur .execute ("SELECT c.product_id, c.quantity, p.name, p.price, p.image_url FROM cart c JOIN products p ON c.product_id = p.id WHERE c.user_id = %s",(user_id ,))
+            items =[dict (row )for row in cur .fetchall ()]
+            if not items :
+                return jsonify ({'error':'Cart is empty'}),400 
 
-        total =0.0 
-        for it in items :
-            total +=float (it ['price'])*int (it ['quantity'])
+            total =0.0 
+            for it in items :
+                total +=float (it ['price'])*int (it ['quantity'])
 
-        order_number ='ORD-'+datetime .utcnow ().strftime ('%Y%m%d%H%M%S')+'-'+str (user_id )
+            order_number ='ORD-'+datetime .utcnow ().strftime ('%Y%m%d%H%M%S')+'-'+str (user_id )
 
-        cur .execute ("""
-            INSERT INTO orders (order_number, user_id, customer_name, customer_phone, customer_email, shipping_address, total_amount, payment_method)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            RETURNING id
-        """,(order_number ,user_id ,customer_name ,customer_phone ,customer_email ,shipping_address ,total ,payment_method ))
+            cur .execute ("""
+                INSERT INTO orders (order_number, user_id, customer_name, customer_phone, customer_email, shipping_address, total_amount, payment_method)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """,(order_number ,user_id ,customer_name ,customer_phone ,customer_email ,shipping_address ,total ,payment_method ))
 
-        order_row =cur .fetchone ()
-        order_id =order_row ['id']
-
-
-        for it in items :
-            product_image =it .get ('image_url')or ''
-
-            if not product_image :
-                product_image =f'/images/products/{it ["product_id"]}'
-            try :
-                cur .execute ("INSERT INTO order_items (order_id, product_id, product_name, product_price, quantity, product_image) VALUES (%s, %s, %s, %s, %s, %s)",
-                (order_id ,it ['product_id'],it ['name'],it ['price'],it ['quantity'],product_image ))
-            except :
-
-                cur .execute ("INSERT INTO order_items (order_id, product_id, product_name, product_price, quantity) VALUES (%s, %s, %s, %s, %s)",
-                (order_id ,it ['product_id'],it ['name'],it ['price'],it ['quantity']))
+            order_row =cur .fetchone ()
+            order_id =order_row ['id']
 
 
-        cur .execute ("DELETE FROM cart WHERE user_id = %s",(user_id ,))
+            for it in items :
+                product_image =it .get ('image_url')or ''
 
-        conn .commit ()
-        cur .close ()
-        conn .close ()
+                if not product_image :
+                    product_image =f'/images/products/{it ["product_id"]}'
+                try :
+                    cur .execute ("INSERT INTO order_items (order_id, product_id, product_name, product_price, quantity, product_image) VALUES (%s, %s, %s, %s, %s, %s)",
+                    (order_id ,it ['product_id'],it ['name'],it ['price'],it ['quantity'],product_image ))
+                except :
 
-        return jsonify ({'message':'Order created','order_id':order_id ,'order_number':order_number }),201 
+                    cur .execute ("INSERT INTO order_items (order_id, product_id, product_name, product_price, quantity) VALUES (%s, %s, %s, %s, %s)",
+                    (order_id ,it ['product_id'],it ['name'],it ['price'],it ['quantity']))
+
+
+            cur .execute ("DELETE FROM cart WHERE user_id = %s",(user_id ,))
+
+            conn .commit ()
+
+            return jsonify ({'message':'Order created','order_id':order_id ,'order_number':order_number }),201 
 
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
@@ -775,19 +726,18 @@ def list_orders ():
         return jsonify ({'error':'Not authenticated'}),401 
 
     try :
-        conn =get_db_connection ()
-        cur =conn .cursor ()
-        cur .execute ("SELECT * FROM orders WHERE user_id = %s ORDER BY created_at DESC",(user_id ,))
-        orders =[dict (row )for row in cur .fetchall ()]
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
+            cur .execute ("SELECT * FROM orders WHERE user_id = %s ORDER BY created_at DESC",(user_id ,))
+            orders =[dict (row )for row in cur .fetchall ()]
 
 
-        for order in orders :
-            cur .execute ("SELECT COUNT(*) as items_count FROM order_items WHERE order_id = %s",(order ['id'],))
-            items_count =cur .fetchone ()
-            order ['items_count']=items_count ['items_count']if items_count else 0 
+            for order in orders :
+                cur .execute ("SELECT COUNT(*) as items_count FROM order_items WHERE order_id = %s",(order ['id'],))
+                items_count =cur .fetchone ()
+                order ['items_count']=items_count ['items_count']if items_count else 0 
 
-        cur .close ();conn .close ()
-        return jsonify (orders )
+            return jsonify (orders )
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 
@@ -805,19 +755,17 @@ def get_order (order_id ):
         return jsonify ({'error':'Not authenticated'}),401 
 
     try :
-        conn =get_db_connection ()
-        cur =conn .cursor ()
-        cur .execute ("SELECT * FROM orders WHERE id = %s AND user_id = %s",(order_id ,user_id ))
-        order =cur .fetchone ()
-        if not order :
-            cur .close ();conn .close ();
-            return jsonify ({'error':'Not found'}),404 
-        cur .execute ("SELECT * FROM order_items WHERE order_id = %s",(order_id ,))
-        items =[dict (row )for row in cur .fetchall ()]
-        cur .close ();conn .close ()
-        order_dict =dict (order )
-        order_dict ['items']=items 
-        return jsonify (order_dict )
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
+            cur .execute ("SELECT * FROM orders WHERE id = %s AND user_id = %s",(order_id ,user_id ))
+            order =cur .fetchone ()
+            if not order :
+                return jsonify ({'error':'Not found'}),404 
+            cur .execute ("SELECT * FROM order_items WHERE order_id = %s",(order_id ,))
+            items =[dict (row )for row in cur .fetchall ()]
+            order_dict =dict (order )
+            order_dict ['items']=items 
+            return jsonify (order_dict )
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 
@@ -835,21 +783,18 @@ def cancel_order (order_id ):
         return jsonify ({'error':'Not authenticated'}),401 
 
     try :
-        conn =get_db_connection ()
-        cur =conn .cursor ()
-        cur .execute ("SELECT status FROM orders WHERE id = %s AND user_id = %s",(order_id ,user_id ))
-        r =cur .fetchone ()
-        if not r :
-            cur .close ();conn .close ();
-            return jsonify ({'error':'Order not found'}),404 
-        status =dict (r ).get ('status')if hasattr (r ,'__getitem__')else getattr (r ,'status',None )
-        if status in ('shipped','delivered'):
-            cur .close ();conn .close ();
-            return jsonify ({'error':'Cannot cancel shipped/delivered order'}),400 
-        cur .execute ("UPDATE orders SET status = 'cancelled' WHERE id = %s",(order_id ,))
-        conn .commit ()
-        cur .close ();conn .close ()
-        return jsonify ({'message':'Order cancelled'})
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
+            cur .execute ("SELECT status FROM orders WHERE id = %s AND user_id = %s",(order_id ,user_id ))
+            r =cur .fetchone ()
+            if not r :
+                return jsonify ({'error':'Order not found'}),404 
+            status =dict (r ).get ('status')if hasattr (r ,'__getitem__')else getattr (r ,'status',None )
+            if status in ('shipped','delivered'):
+                return jsonify ({'error':'Cannot cancel shipped/delivered order'}),400 
+            cur .execute ("UPDATE orders SET status = 'cancelled' WHERE id = %s",(order_id ,))
+            conn .commit ()
+            return jsonify ({'message':'Order cancelled'})
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 
@@ -864,27 +809,26 @@ def get_product_reviews (product_id ):
             token =auth_header [7 :]
             user_id =get_user_id_from_token (token )
 
-        conn =get_db_connection ()
-        cur =conn .cursor ()
-        cur .execute ("SELECT r.id, r.user_id, u.username, r.rating, r.comment, r.created_at, (u.avatar IS NOT NULL) AS has_avatar FROM reviews r JOIN users u ON r.user_id = u.id WHERE r.product_id = %s ORDER BY r.created_at DESC",(product_id ,))
-        reviews =[dict (row )for row in cur .fetchall ()]
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
+            cur .execute ("SELECT r.id, r.user_id, u.username, r.rating, r.comment, r.created_at, (u.avatar IS NOT NULL) AS has_avatar FROM reviews r JOIN users u ON r.user_id = u.id WHERE r.product_id = %s ORDER BY r.created_at DESC",(product_id ,))
+            reviews =[dict (row )for row in cur .fetchall ()]
 
-        for rv in reviews :
-            try :
-                rv ['is_owner']=(user_id is not None and int (rv .get ('user_id')or 0 )==int (user_id ))
-            except Exception :
-                rv ['is_owner']=False 
+            for rv in reviews :
+                try :
+                    rv ['is_owner']=(user_id is not None and int (rv .get ('user_id')or 0 )==int (user_id ))
+                except Exception :
+                    rv ['is_owner']=False 
 
-            try :
-                if rv .get ('has_avatar'):
-                    base =request .host_url .rstrip ('/')
-                    rv ['avatar']=f"{base }/api/users/{rv .get ('user_id')}/avatar"
-                else :
+                try :
+                    if rv .get ('has_avatar'):
+                        base =request .host_url .rstrip ('/')
+                        rv ['avatar']=f"{base }/api/users/{rv .get ('user_id')}/avatar"
+                    else :
+                        rv ['avatar']=None 
+                except Exception :
                     rv ['avatar']=None 
-            except Exception :
-                rv ['avatar']=None 
-        cur .close ();conn .close ()
-        return jsonify (reviews )
+            return jsonify (reviews )
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 
@@ -906,122 +850,102 @@ def search_products ():
         min_price ,max_price =0 ,999999 
 
     try :
-        conn =get_db_connection ()
-        cur =conn .cursor ()
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
 
 
-        where_parts =["is_available = TRUE"]
-        params =[]
+            where_parts =["is_available = TRUE"]
+            params =[]
 
-        if query and len (query )>=2 :
-            where_parts .append ("(to_tsvector('russian', name || ' ' || COALESCE(description, '')) @@ plainto_tsquery('russian', %s) OR name ILIKE %s)")
-            params .extend ([query ,f'%{query }%'])
+            if query and len (query )>=2 :
+                where_parts .append ("(to_tsvector('russian', name || ' ' || COALESCE(description, '')) @@ plainto_tsquery('russian', %s) OR name ILIKE %s)")
+                params .extend ([query ,f'%{query }%'])
 
-        if category :
-            where_parts .append ("category = %s")
-            params .append (category )
+            if category :
+                where_parts .append ("category = %s")
+                params .append (category )
 
-        if min_price or max_price :
-            where_parts .append ("price BETWEEN %s AND %s")
-            params .extend ([min_price ,max_price ])
+            if min_price or max_price :
+                where_parts .append ("price BETWEEN %s AND %s")
+                params .extend ([min_price ,max_price ])
 
-        if color :
-            where_parts .append ("characteristics::text ILIKE %s")
-            params .append (f'%{color }%')
+            if color :
+                where_parts .append ("characteristics::text ILIKE %s")
+                params .append (f'%{color }%')
 
-        where_clause =" AND ".join (where_parts )
-
-
-        order_clause ="name ASC"
-        if sort_by =='price':
-            order_clause ="price ASC"
-        elif sort_by =='-price':
-            order_clause ="price DESC"
-        elif sort_by =='newest':
-            order_clause ="id DESC"
-
-        query_str =f"""
-            SELECT id, name, description, price, category, images, characteristics, stock_quantity
-            FROM products
-            WHERE {where_clause }
-            ORDER BY {order_clause }
-            LIMIT 100
-        """
-
-        cur .execute (query_str ,params )
-        results =[dict (row )for row in cur .fetchall ()]
+            where_clause =" AND ".join (where_parts )
 
 
-        for p in results :
-            normalize_product_images (p )
-            if 'image_bytes'in p :
-                p .pop ('image_bytes',None )
-            if 'image_mime'in p :
-                p .pop ('image_mime',None )
+            order_clause ="name ASC"
+            if sort_by =='price':
+                order_clause ="price ASC"
+            elif sort_by =='-price':
+                order_clause ="price DESC"
+            elif sort_by =='newest':
+                order_clause ="id DESC"
 
-        cur .close ();conn .close ()
-        return jsonify ({'results':results ,'count':len (results )})
+            query_str =f"""
+                SELECT id, name, description, price, category, images, characteristics, stock_quantity
+                FROM products
+                WHERE {where_clause }
+                ORDER BY {order_clause }
+                LIMIT 100
+            """
+
+            cur .execute (query_str ,params )
+            results =[dict (row )for row in cur .fetchall ()]
+
+
+            for p in results :
+                normalize_product_images (p )
+                if 'image_bytes'in p :
+                    p .pop ('image_bytes',None )
+                if 'image_mime'in p :
+                    p .pop ('image_mime',None )
+
+            return jsonify ({'results':results ,'count':len (results )})
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 
 @app .route ('/api/products/search/suggestions',methods =['GET'])
 def search_suggestions ():
-    """Автодополнение — популярные названия и артикулы товаров"""
     query =(request .args .get ('q')or '').strip ()
     if not query or len (query )<2 :
         return jsonify ([])
     try :
-        conn =get_db_connection ()
-        cur =conn .cursor ()
-        cur .execute ("""
-            SELECT DISTINCT name FROM products
-            WHERE (name ILIKE %s OR id::text LIKE %s) AND is_available = TRUE
-            LIMIT 10
-        """,(f'%{query }%',f'%{query }%'))
-        suggestions =[row ['name']for row in cur .fetchall ()]
-        cur .close ();conn .close ()
-        return jsonify (suggestions )
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
+            cur .execute ("""
+                SELECT DISTINCT name FROM products
+                WHERE (name ILIKE %s OR id::text LIKE %s) AND is_available = TRUE
+                LIMIT 10
+            """,(f'%{query }%',f'%{query }%'))
+            suggestions =[row ['name']for row in cur .fetchall ()]
+            return jsonify (suggestions )
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 
 @app .route ('/api/products/filters',methods =['GET'])
 def get_filters ():
-    """Доступные значения для фильтров (категории, цвета, диапазоны цен)"""
     try :
-        conn =get_db_connection ()
-        cur =conn .cursor ()
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
 
 
-        cur .execute ("SELECT DISTINCT category FROM products WHERE is_available = TRUE ORDER BY category")
-        categories =[row ['category']for row in cur .fetchall ()]
+            cur .execute ("SELECT DISTINCT category FROM products WHERE is_available = TRUE ORDER BY category")
+            categories =[row ['category']for row in cur .fetchall ()]
 
 
-        cur .execute ("SELECT MIN(price) as min_price, MAX(price) as max_price FROM products WHERE is_available = TRUE")
-        price_row =cur .fetchone ()
-        min_price =float (price_row ['min_price']or 0 )
-        max_price =float (price_row ['max_price']or 0 )
+            cur .execute ("SELECT MIN(price) as min_price, MAX(price) as max_price FROM products WHERE is_available = TRUE")
+            price_row =cur .fetchone ()
+            min_price =float (price_row ['min_price']or 0 )
+            max_price =float (price_row ['max_price']or 0 )
 
-
-        cur .execute ("SELECT DISTINCT characteristics FROM products WHERE is_available = TRUE AND characteristics IS NOT NULL LIMIT 100")
-        colors_set =set ()
-        for row in cur .fetchall ():
-            try :
-                chars =row ['characteristics']
-                if isinstance (chars ,str ):
-                    chars =json .loads (chars )
-                if isinstance (chars ,dict )and 'цвет'in chars :
-                    colors_set .add (chars ['цвет'])
-            except Exception :
-                pass 
-        colors =sorted (list (colors_set ))
-
-        cur .close ();conn .close ()
-        return jsonify ({
-        'categories':categories ,
-        'min_price':min_price ,
-        'max_price':max_price ,
-        'colors':colors 
-        })
+            return jsonify ({
+            'categories':categories ,
+            'min_price':min_price ,
+            'max_price':max_price
+            })
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 
@@ -1053,23 +977,20 @@ def add_review ():
     if not comment or len (comment )>1000 :
         return jsonify ({'error':'Invalid comment (required, max 1000 chars)'}),400 
     try :
-        conn =get_db_connection ()
-        cur =conn .cursor ()
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
 
-        cur .execute ("SELECT id FROM products WHERE id = %s",(product_id ,))
-        if not cur .fetchone ():
-            cur .close ();conn .close ();
-            return jsonify ({'error':'Product not found'}),404 
+            cur .execute ("SELECT id FROM products WHERE id = %s",(product_id ,))
+            if not cur .fetchone ():
+                return jsonify ({'error':'Product not found'}),404 
 
-        cur .execute ("SELECT id FROM reviews WHERE user_id = %s AND product_id = %s",(user_id ,product_id ))
-        if cur .fetchone ():
-            cur .close ();conn .close ();
-            return jsonify ({'error':'Review already exists'}),400 
-        cur .execute ("INSERT INTO reviews (user_id, product_id, rating, comment) VALUES (%s, %s, %s, %s) RETURNING id",(user_id ,product_id ,rating ,comment ))
-        row =cur .fetchone ()
-        conn .commit ()
-        cur .close ();conn .close ()
-        return jsonify ({'message':'Review added','id':row ['id']}),201 
+            cur .execute ("SELECT id FROM reviews WHERE user_id = %s AND product_id = %s",(user_id ,product_id ))
+            if cur .fetchone ():
+                return jsonify ({'error':'Review already exists'}),400 
+            cur .execute ("INSERT INTO reviews (user_id, product_id, rating, comment) VALUES (%s, %s, %s, %s) RETURNING id",(user_id ,product_id ,rating ,comment ))
+            row =cur .fetchone ()
+            conn .commit ()
+            return jsonify ({'message':'Review added','id':row ['id']}),201 
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 
@@ -1097,17 +1018,15 @@ def edit_review (review_id ):
     if not comment or len (comment )>1000 :
         return jsonify ({'error':'Invalid comment (required, max 1000 chars)'}),400 
     try :
-        conn =get_db_connection ()
-        cur =conn .cursor ()
-        cur .execute ("SELECT user_id FROM reviews WHERE id = %s",(review_id ,))
-        r =cur .fetchone ()
-        if not r or dict (r ).get ('user_id')!=user_id :
-            cur .close ();conn .close ();
-            return jsonify ({'error':'Not allowed'}),403 
-        cur .execute ("UPDATE reviews SET rating = %s, comment = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s",(rating ,comment ,review_id ))
-        conn .commit ()
-        cur .close ();conn .close ()
-        return jsonify ({'message':'Updated'})
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
+            cur .execute ("SELECT user_id FROM reviews WHERE id = %s",(review_id ,))
+            r =cur .fetchone ()
+            if not r or dict (r ).get ('user_id')!=user_id :
+                return jsonify ({'error':'Not allowed'}),403 
+            cur .execute ("UPDATE reviews SET rating = %s, comment = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s",(rating ,comment ,review_id ))
+            conn .commit ()
+            return jsonify ({'message':'Updated'})
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 
@@ -1125,17 +1044,15 @@ def delete_review (review_id ):
         return jsonify ({'error':'Not authenticated'}),401 
 
     try :
-        conn =get_db_connection ()
-        cur =conn .cursor ()
-        cur .execute ("SELECT user_id FROM reviews WHERE id = %s",(review_id ,))
-        r =cur .fetchone ()
-        if not r or dict (r ).get ('user_id')!=user_id :
-            cur .close ();conn .close ();
-            return jsonify ({'error':'Not allowed'}),403 
-        cur .execute ("DELETE FROM reviews WHERE id = %s",(review_id ,))
-        conn .commit ()
-        cur .close ();conn .close ()
-        return jsonify ({'message':'Deleted'})
+        with pool.connection() as conn:
+            cur =conn .cursor(row_factory=psycopg.rows.dict_row)
+            cur .execute ("SELECT user_id FROM reviews WHERE id = %s",(review_id ,))
+            r =cur .fetchone ()
+            if not r or dict (r ).get ('user_id')!=user_id :
+                return jsonify ({'error':'Not allowed'}),403 
+            cur .execute ("DELETE FROM reviews WHERE id = %s",(review_id ,))
+            conn .commit ()
+            return jsonify ({'message':'Deleted'})
     except Exception as e :
         return jsonify ({'error':str (e )}),500 
 

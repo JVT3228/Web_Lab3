@@ -224,7 +224,6 @@
   color: var(--accent);
 }
 
-
 .orders-list {
   display: flex;
   flex-direction: column;
